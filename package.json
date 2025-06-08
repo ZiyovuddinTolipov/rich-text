@@ -1,6 +1,6 @@
 {
     "name": "@tolipovjs/rich-text",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "A modern, lightweight, and fully featured React rich text editor library",
     "main": "dist/index.js",
     "module": "dist/index.esm.js",
