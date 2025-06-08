@@ -1,0 +1,46 @@
+{
+    "name": "@tolipovjs/rich-text",
+    "version": "1.0.0",
+    "description": "A modern, lightweight, and fully featured React rich text editor library",
+    "main": "dist/index.js",
+    "module": "dist/index.esm.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsup src/index.ts --dts --format esm,cjs --out-dir dist",
+        "dev": "vite",
+        "prepublishOnly": "npm run build",
+        "lint": "eslint src --ext .ts,.tsx",
+        "type-check": "tsc --noEmit"
+    },
+    "keywords": [
+        "react",
+        "rich-text-editor",
+        "wysiwyg",
+        "typescript",
+        "tailwindcss",
+        "editor",
+        "component-library"
+    ],
+    "author": "TolipovJS",
+    "license": "MIT",
+    "peerDependencies": {
+        "react": "^18.0.0",
+        "react-dom": "^18.0.0"
+    },
+    "dependencies": {
+        "lucide-react": "^0.513.0",
+        "react": "^18.0.0",
+        "react-dom": "^18.0.0"
+    },
+    "devDependencies": {
+        "@types/react": "^19.1.6",
+        "@types/react-dom": "^19.1.6",
+        "tsup": "^8.5.0",
+        "typescript": "^5.8.3",
+        "eslint": "^8.0.0",
+        "vite": "^4.0.0"
+    }
+}

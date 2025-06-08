@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "target": "ESNext", // Yaxshi performant JS chiqishi uchun
+        "module": "ESNext", // ES module uchun
+        "jsx": "react-jsx", // React 17+ uchun JSX transform
+        "declaration": true, // .d.ts fayllar chiqarish
+        "declarationDir": "dist", // .d.ts fayllarni chiqish papkasi
+        "outDir": "dist", // JS fayllarni chiqish papkasi
+        "moduleResolution": "node", // Node-style modullarni aniqlash
+        "esModuleInterop": true, // default importlarni quvvatlash
+        "allowSyntheticDefaultImports": true, // Babel-like importlar
+        "skipLibCheck": true, // performance uchun
+        "forceConsistentCasingInFileNames": true, // fayl nomlaridagi harflarni qat’iy tekshirish
+        "strict": true, // TypeScriptning qat’iy rejimi
+        "isolatedModules": true, // Har bir modulni alohida kompilyatsiya
+        "resolveJsonModule": true, // JSON fayllarni import qilishga ruxsat
+        "noEmit": false // Natijaviy fayllarni chiqarishga ruxsat
+    },
+    "include": [
+        "src"
+    ], // faqat `src` papkasi ishlatiladi
+    "exclude": [
+        "node_modules",
+        "dist"
+    ] // `node_modules` va `dist` papkalari istisno
+}
