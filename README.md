@@ -11,7 +11,31 @@
 
 A modern, lightweight React rich text editor — **no Tailwind required**, **fully themeable via CSS variables**, with an imperative ref API and a customizable toolbar.
 
+> 🎮 **[Try the live playground →](https://rich-text-website.vercel.app/playground)** · [![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz_small.svg)](https://stackblitz.com/fork/github/ZiyovuddinTolipov/rich-text/tree/main/examples/demo-app?title=@tolipovjs/rich-text&description=Notion-style%20React%20rich%20text%20editor)
+
 > v2.0 is a breaking release. See the [Migration Guide](#migration-from-v1) below.
+
+---
+
+## Why @tolipovjs/rich-text?
+
+| Feature | @tolipovjs/rich-text | TinyMCE | CKEditor 5 | Lexical (Meta) | TipTap | Quill |
+|---|---|---|---|---|---|---|
+| **Price** | 🟢 Free MIT | 🔴 $79/mo+ (paid plans) | 🔴 $99/mo+ | 🟢 Free MIT | 🟡 Pro $149/mo | 🟢 Free BSD |
+| Bundle (minzip) | 🟢 **~22 KB** | 🔴 ~400 KB | 🔴 ~250 KB | 🟢 ~30 KB | 🟡 ~80 KB | 🟡 ~45 KB |
+| Notion-style slash menu | 🟢 Built-in | 🔴 Paid plugin | 🔴 Paid plugin | 🟡 DIY | 🟡 Plugin | 🔴 No |
+| Markdown shortcuts | 🟢 Built-in | 🔴 Paid plugin | 🟡 Plugin | 🟡 DIY | 🟢 Plugin | 🔴 No |
+| Bubble/floating toolbar | 🟢 Built-in | 🟢 Yes | 🟢 Yes | 🟡 DIY | 🟢 Plugin | 🔴 No |
+| CSS-variable theming | 🟢 Native | 🟡 Limited | 🟡 SCSS rebuild | 🟡 DIY | 🟡 DIY | 🟡 DIY |
+| Dark mode (built-in) | 🟢 Auto + manual | 🟡 Paid plugin | 🟡 Skin | 🟡 DIY | 🟡 DIY | 🔴 DIY |
+| HTML sanitizer | 🟢 Built-in | 🟢 Yes | 🟢 Yes | 🟡 DIY | 🟡 DIY | 🟡 Basic |
+| HTML → Markdown export | 🟢 Built-in | 🔴 Paid | 🟡 Plugin | 🔴 DIY | 🟢 Plugin | 🔴 DIY |
+| TypeScript types | 🟢 First-class | 🟢 Yes | 🟢 Yes | 🟢 Yes | 🟢 Yes | 🟡 @types |
+| SSR (Next.js) safe | 🟢 Out of box | 🟡 Workarounds | 🟡 Workarounds | 🟢 Yes | 🟢 Yes | 🟡 Workarounds |
+| Peer deps | 🟢 `lucide-react` only | 🔴 None (loads CDN) | 🔴 Heavy | 🟢 None | 🟡 ProseMirror suite | 🟢 None |
+| API style | 🟢 React idiomatic | 🟡 jQuery-ish | 🟡 Builder | 🟢 React | 🟢 React | 🟡 Imperative |
+
+**TL;DR:** Free, lightweight, batteries-included. Notion UX without paying $99/month.
 
 ---
 
@@ -330,6 +354,149 @@ Chrome 60+ · Firefox 55+ · Safari 12+ · Edge 79+. The editor uses `document.e
 
 ---
 
+## Recipes
+
+Copy-paste ready snippets for common use cases.
+
+### 📝 Blog post editor
+
+```tsx
+import { useState } from "react"
+import { RichTextEditor, htmlToMarkdown } from "@tolipovjs/rich-text"
+import "@tolipovjs/rich-text/styles.css"
+
+export function BlogEditor({ onPublish }: { onPublish: (md: string) => void }) {
+  const [html, setHtml] = useState("")
+  return (
+    <>
+      <RichTextEditor
+        value={html}
+        onChange={setHtml}
+        toolbar="all"
+        slashMenu
+        markdownShortcuts
+        bubbleToolbar
+        placeholder="Write your post… Type / for blocks"
+        minHeight="500px"
+      />
+      <button onClick={() => onPublish(htmlToMarkdown(html))}>Publish</button>
+    </>
+  )
+}
+```
+
+### 💬 Comment box (compact)
+
+```tsx
+<RichTextEditor
+  value={html}
+  onChange={setHtml}
+  toolbar="minimal"
+  bubbleToolbar
+  showStats={false}
+  maxLength={500}
+  minHeight="80px"
+  placeholder="Add a comment…"
+/>
+```
+
+### 📓 Note-taking app
+
+```tsx
+<RichTextEditor
+  value={html}
+  onChange={setHtml}
+  toolbar="basic"
+  slashMenu
+  markdownShortcuts
+  bubbleToolbar
+  theme="auto"
+  placeholder="Press / for blocks, ** for bold, # for heading"
+/>
+```
+
+### 📧 Email composer
+
+```tsx
+<RichTextEditor
+  value={html}
+  onChange={setHtml}
+  toolbar={["bold", "italic", "underline", "|", "link", "|", "ul", "ol"]}
+  allowHtmlMode={false}
+  onImageUpload={async (file) => {
+    const fd = new FormData()
+    fd.append("file", file)
+    const res = await fetch("/api/attach", { method: "POST", body: fd })
+    const { url } = await res.json()
+    return url
+  }}
+/>
+```
+
+### 🔗 react-hook-form integration
+
+```tsx
+import { Controller, useForm } from "react-hook-form"
+import { RichTextEditor } from "@tolipovjs/rich-text"
+
+export function PostForm() {
+  const { control, handleSubmit } = useForm({ defaultValues: { content: "" } })
+
+  return (
+    <form onSubmit={handleSubmit((d) => console.log(d))}>
+      <Controller
+        name="content"
+        control={control}
+        rules={{ required: true, minLength: 20 }}
+        render={({ field }) => (
+          <RichTextEditor value={field.value} onChange={field.onChange} />
+        )}
+      />
+      <button type="submit">Save</button>
+    </form>
+  )
+}
+```
+
+### ⚡ Next.js App Router (SSR safe)
+
+```tsx
+// app/editor/page.tsx
+"use client"
+
+import dynamic from "next/dynamic"
+
+const Editor = dynamic(
+  () => import("@tolipovjs/rich-text").then((m) => m.RichTextEditor),
+  { ssr: false },
+)
+
+export default function Page() {
+  return <Editor placeholder="SSR-safe…" />
+}
+```
+
+> Or skip `dynamic()` entirely — the editor already guards every `window`/`document` touch.
+
+### ☁️ Cloudinary upload
+
+```tsx
+<RichTextEditor
+  onImageUpload={async (file) => {
+    const fd = new FormData()
+    fd.append("file", file)
+    fd.append("upload_preset", "your_preset")
+    const res = await fetch("https://api.cloudinary.com/v1_1/<cloud>/image/upload", {
+      method: "POST",
+      body: fd,
+    })
+    return (await res.json()).secure_url
+  }}
+/>
+```
+
+---
+
 ## Develop
 
 ```bash
@@ -342,6 +509,15 @@ npm test             # vitest run
 
 ---
 
+## Used by
+
+Building something with `@tolipovjs/rich-text`? [Open a PR](https://github.com/ZiyovuddinTolipov/rich-text/pulls) to add your project here.
+
+- [Live playground](https://rich-text-website.vercel.app/playground) — official demo site
+- _Your project here_
+
+---
+
 ## Contributing
 
 Repo: https://github.com/ZiyovuddinTolipov/rich-text
@@ -351,6 +527,18 @@ Repo: https://github.com/ZiyovuddinTolipov/rich-text
 3. `git commit -m "feat: x"`
 4. `git push origin feature/x`
 5. Open a PR
+
+Bug reports, feature requests, and PRs all welcome.
+
+---
+
+## Support
+
+If this library saves you time:
+
+- ⭐ [Star on GitHub](https://github.com/ZiyovuddinTolipov/rich-text)
+- 🐛 [Report bugs](https://github.com/ZiyovuddinTolipov/rich-text/issues)
+- 💬 [Discuss on GitHub](https://github.com/ZiyovuddinTolipov/rich-text/discussions)
 
 ---
 
