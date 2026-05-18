@@ -13,11 +13,16 @@ import {
 import { Toolbar } from "./Toolbar"
 import { SlashMenu } from "./SlashMenu"
 import { BubbleToolbar } from "./BubbleToolbar"
+import { FindReplace } from "./FindReplace"
+import { ImageResizer } from "./ImageResizer"
 import { HTMLSanitizer } from "../utils/sanitizer"
 import { EditorCommands } from "../utils/commands"
 import { HistoryStack } from "../utils/history"
 import { applyMarkdownShortcut } from "../utils/mdShortcuts"
 import { DEFAULT_SLASH_COMMANDS } from "../utils/slashCommands"
+import { cleanPastedHtml, isExternalPaste } from "../utils/pasteCleanup"
+import { hashString } from "../utils/dirty"
+import { createAutosaveScheduler, type AutosaveScheduler } from "../utils/autosave"
 import { RichTextEditorContext } from "../context"
 import type {
   RichTextEditorHandle,
@@ -59,6 +64,12 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     slashMenu = false,
     markdownShortcuts = false,
     bubbleToolbar = false,
+    findReplace = false,
+    autosave,
+    cleanPaste = true,
+    imageResize = false,
+    onAutosave,
+    onDirtyChange,
   },
   ref,
 ) {
@@ -67,10 +78,14 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
   const initialValueRef = useRef(value)
   const isTypingRef = useRef(false)
   const historyRef = useRef(new HistoryStack(100))
+  const dirtyBaselineRef = useRef(hashString(value))
+  const wasDirtyRef = useRef(false)
+  const autosaveRef = useRef<AutosaveScheduler | null>(null)
   const [isHtmlMode, setIsHtmlMode] = useState(false)
   const [htmlSource, setHtmlSource] = useState(value)
   const [isEmpty, setIsEmpty] = useState(!value)
   const [slashState, setSlashState] = useState<SlashState | null>(null)
+  const [findOpen, setFindOpen] = useState(false)
 
   const slashCommands = useMemo<SlashCommand[]>(() => {
     if (slashMenu === false) return []
@@ -112,9 +127,19 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         handleInput()
       },
       getStats: () => EditorCommands.stats(getHTML()),
+      isDirty: () => hashString(getHTML()) !== dirtyBaselineRef.current,
+      markClean: () => {
+        dirtyBaselineRef.current = hashString(getHTML())
+        if (wasDirtyRef.current) {
+          wasDirtyRef.current = false
+          onDirtyChange?.(false)
+        }
+      },
+      openFindReplace: () => setFindOpen(true),
+      closeFindReplace: () => setFindOpen(false),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [getHTML, setHTML],
+    [getHTML, setHTML, onDirtyChange],
   )
 
   // ---------- Sync external value ----------
@@ -127,8 +152,13 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     setHtmlSource(value)
     lastValueRef.current = value
     historyRef.current.reset(value)
+    dirtyBaselineRef.current = hashString(value)
+    if (wasDirtyRef.current) {
+      wasDirtyRef.current = false
+      onDirtyChange?.(false)
+    }
     setIsEmpty(!HTMLSanitizer.extractText(value).trim())
-  }, [value, isHtmlMode])
+  }, [value, isHtmlMode, onDirtyChange])
 
   // ---------- Mount: set initial HTML once ----------
   useEffect(() => {
@@ -243,10 +273,18 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     historyRef.current.push(sanitized)
     onChange?.(sanitized)
     updateSlashState()
+    // Dirty tracking
+    const nowDirty = hashString(sanitized) !== dirtyBaselineRef.current
+    if (nowDirty !== wasDirtyRef.current) {
+      wasDirtyRef.current = nowDirty
+      onDirtyChange?.(nowDirty)
+    }
+    // Autosave debounce
+    autosaveRef.current?.notify(sanitized)
     setTimeout(() => {
       isTypingRef.current = false
     }, 50)
-  }, [isHtmlMode, maxLength, onChange, updateSlashState])
+  }, [isHtmlMode, maxLength, onChange, updateSlashState, onDirtyChange])
 
   const handleHtmlChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const content = e.target.value
@@ -288,9 +326,19 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       }
     }
 
+    // HTML paste path (Word, GDocs, Pages, web pages, internal copy)
+    const htmlData = clipboardData.getData("text/html")
+    if (htmlData) {
+      const cleaned =
+        cleanPaste && isExternalPaste(htmlData) ? cleanPastedHtml(htmlData) : htmlData
+      EditorCommands.insertHTML(cleaned)
+      handleInput()
+      return
+    }
+
     const text = clipboardData.getData("text/plain")
     EditorCommands.execCommand("insertText", text)
-  }, [onImageUpload, handleInput])
+  }, [onImageUpload, handleInput, cleanPaste])
 
   // ---------- HTML mode toggle ----------
   const toggleHtmlMode = () => {
@@ -305,7 +353,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     setIsHtmlMode((m) => !m)
   }
 
-  // ---------- Keyboard shortcuts (undo/redo + md shortcuts) ----------
+  // ---------- Keyboard shortcuts (undo/redo + md shortcuts + find) ----------
   const handleKeyDown = (e: React.KeyboardEvent) => {
     const mod = e.ctrlKey || e.metaKey
 
@@ -315,6 +363,12 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         handleInput()
         return
       }
+    }
+
+    if (findReplace && mod && (e.key === "f" || e.key === "F")) {
+      e.preventDefault()
+      setFindOpen(true)
+      return
     }
 
     if (mod && e.key === "z" && !e.shiftKey) {
@@ -362,6 +416,28 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 
   const closeSlash = useCallback(() => setSlashState(null), [])
 
+  // ---------- Autosave scheduler lifecycle ----------
+  useEffect(() => {
+    if (!autosave) {
+      autosaveRef.current?.cancel()
+      autosaveRef.current = null
+      return
+    }
+    autosaveRef.current = createAutosaveScheduler({
+      interval: autosave.interval,
+      onError: autosave.onError,
+      onSave: async (html) => {
+        await autosave.onSave(html)
+        onAutosave?.(html)
+      },
+    })
+    return () => {
+      autosaveRef.current?.flush()
+      autosaveRef.current = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autosave?.interval, autosave?.onSave, autosave?.onError, onAutosave])
+
   const rootClass = ["rte-root", className].filter(Boolean).join(" ")
   const surfaceStyle: React.CSSProperties = minHeight ? { ["--rte-min-height" as any]: minHeight } : {}
 
@@ -389,6 +465,15 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           </div>
         )}
 
+        {findReplace && (
+          <FindReplace
+            editor={editorRef.current}
+            open={findOpen}
+            onClose={() => setFindOpen(false)}
+            onChange={handleInput}
+          />
+        )}
+
         {isHtmlMode ? (
           <textarea
             value={htmlSource}
@@ -398,22 +483,25 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
             spellCheck={false}
           />
         ) : (
-          <div
-            ref={editorRef}
-            contentEditable={!disabled && !readOnly}
-            onInput={handleInput}
-            onPaste={handlePaste}
-            onFocus={onFocus}
-            onBlur={onBlur}
-            onKeyDown={handleKeyDown}
-            className="rte-surface"
-            style={surfaceStyle}
-            data-placeholder={placeholder}
-            data-empty={isEmpty || undefined}
-            data-readonly={readOnly || undefined}
-            data-disabled={disabled || undefined}
-            suppressContentEditableWarning
-          />
+          <div className="rte-surface-wrap" style={{ position: "relative" }}>
+            <div
+              ref={editorRef}
+              contentEditable={!disabled && !readOnly}
+              onInput={handleInput}
+              onPaste={handlePaste}
+              onFocus={onFocus}
+              onBlur={onBlur}
+              onKeyDown={handleKeyDown}
+              className="rte-surface"
+              style={surfaceStyle}
+              data-placeholder={placeholder}
+              data-empty={isEmpty || undefined}
+              data-readonly={readOnly || undefined}
+              data-disabled={disabled || undefined}
+              suppressContentEditableWarning
+            />
+            {imageResize && <ImageResizer editor={editorRef.current} onResize={handleInput} />}
+          </div>
         )}
 
         {showStats && stats && (

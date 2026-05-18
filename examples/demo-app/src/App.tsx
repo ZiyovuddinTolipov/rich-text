@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   RichTextEditor,
   htmlToMarkdown,
@@ -10,13 +10,17 @@ import {
 import { Sparkles } from "lucide-react"
 
 const INITIAL = `<h1>Demo — try the new features</h1>
-<p>This editor showcases <strong>v2.1</strong> features.</p>
+<p>This editor showcases <strong>v2.2</strong> features.</p>
 <ul>
   <li>Type <code>/</code> anywhere — slash command menu opens</li>
   <li>Type <code>**bold**</code> then space — converts to <strong>bold</strong></li>
   <li>Select any text — bubble toolbar appears above</li>
+  <li>Press <code>Ctrl/Cmd + F</code> — find &amp; replace popup</li>
+  <li>Paste from Word/Google Docs — clutter is stripped</li>
+  <li>Click an image — drag corners to resize</li>
 </ul>
 <p>Try them now ↓</p>
+<p><img src="https://picsum.photos/seed/rte/600/300" alt="random" /></p>
 `
 
 export function App() {
@@ -27,6 +31,11 @@ export function App() {
   const [slashOn, setSlashOn] = useState(true)
   const [mdOn, setMdOn] = useState(true)
   const [bubbleOn, setBubbleOn] = useState(true)
+  const [findOn, setFindOn] = useState(true)
+  const [resizeOn, setResizeOn] = useState(true)
+  const [cleanPaste, setCleanPaste] = useState(true)
+  const [dirty, setDirty] = useState(false)
+  const [savedAt, setSavedAt] = useState<string | null>(null)
 
   const aiCommand: SlashCommand = {
     id: "ai",
@@ -40,30 +49,51 @@ export function App() {
       ),
   }
 
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault()
+        ref.current?.markClean()
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [])
+
   return (
     <div className="app">
       <header className="hero">
         <h1>@tolipovjs/rich-text</h1>
-        <p>Free Notion-style editor for React. Test v2.1 features below.</p>
-        <span className="tag">v2.1.0 · local build</span>
+        <p>Free Notion-style editor for React. Test v2.2 features below.</p>
+        <span className="tag">v2.2.0 · local build</span>
       </header>
 
       <div className="tips">
         <div className="tip">
-          <strong>Slash menu</strong>
+          <strong>Find &amp; replace</strong>
           <span>
-            Type <code>/</code> then start filtering — try <code>/head</code>, <code>/table</code>, <code>/todo</code>.
+            Press <code>Ctrl/Cmd + F</code>. Live highlight, prev/next, replace one or all.
           </span>
         </div>
         <div className="tip">
-          <strong>Markdown shortcuts</strong>
+          <strong>Autosave</strong>
           <span>
-            <code>**bold**</code>, <code>*italic*</code>, <code># H1</code>, <code>- list</code>, <code>&gt; quote</code>, <code>---</code>, <code>```</code>
+            Edit and pause — autosave fires after 1500 ms. Watch the timestamp below.
           </span>
         </div>
         <div className="tip">
-          <strong>Bubble toolbar</strong>
-          <span>Select text → floating toolbar appears above selection.</span>
+          <strong>Paste cleanup</strong>
+          <span>Paste from Word/Google Docs — MSO classes and clutter are stripped.</span>
+        </div>
+        <div className="tip">
+          <strong>Image resize</strong>
+          <span>Click any image — drag the corner handles to resize.</span>
+        </div>
+        <div className="tip">
+          <strong>Dirty tracking</strong>
+          <span>
+            Edit then <code>Ctrl + S</code> to mark clean. Dirty: <code>{String(dirty)}</code>.
+          </span>
         </div>
       </div>
 
@@ -97,8 +127,33 @@ export function App() {
           Bubble toolbar
         </label>
 
+        <label className={`pill${findOn ? " on" : ""}`}>
+          <input type="checkbox" checked={findOn} onChange={() => setFindOn((v) => !v)} />
+          Find &amp; replace
+        </label>
+
+        <label className={`pill${resizeOn ? " on" : ""}`}>
+          <input type="checkbox" checked={resizeOn} onChange={() => setResizeOn((v) => !v)} />
+          Image resize
+        </label>
+
+        <label className={`pill${cleanPaste ? " on" : ""}`}>
+          <input type="checkbox" checked={cleanPaste} onChange={() => setCleanPaste((v) => !v)} />
+          Clean paste
+        </label>
+
+        <button onClick={() => ref.current?.openFindReplace()}>Open find</button>
+        <button onClick={() => ref.current?.markClean()}>Mark clean</button>
         <button onClick={() => ref.current?.clear()}>Clear</button>
-        <button onClick={() => alert(ref.current?.getText())}>getText()</button>
+      </div>
+
+      <div className="status">
+        <span>
+          Dirty: <strong>{String(dirty)}</strong>
+        </span>
+        <span>
+          Last autosave: <strong>{savedAt ?? "—"}</strong>
+        </span>
       </div>
 
       <div className={`editor-wrap${pink ? " theme-pink" : ""}`}>
@@ -112,6 +167,17 @@ export function App() {
           slashMenu={slashOn ? [aiCommand, ...DEFAULT_SLASH_COMMANDS] : false}
           markdownShortcuts={mdOn}
           bubbleToolbar={bubbleOn}
+          findReplace={findOn}
+          imageResize={resizeOn}
+          cleanPaste={cleanPaste}
+          onDirtyChange={setDirty}
+          autosave={{
+            interval: 1500,
+            onSave: (html) => {
+              console.log("[autosave] saved", html.length, "chars")
+              setSavedAt(new Date().toLocaleTimeString())
+            },
+          }}
           placeholder="Type / for commands, or **bold**, # heading…"
         />
       </div>

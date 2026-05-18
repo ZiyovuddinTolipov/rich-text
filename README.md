@@ -45,6 +45,7 @@ A modern, lightweight React rich text editor — **no Tailwind required**, **ful
 - Theme via plain CSS custom properties (`--rte-*`).
 - Built-in **light**, **dark**, **auto** modes (`prefers-color-scheme`).
 - **Notion-style UX** *(v2.1)*: slash command menu, Markdown shortcuts, floating bubble toolbar.
+- **Productivity** *(v2.2)*: find &amp; replace (`Ctrl/Cmd+F`), debounced autosave, Word/Google Docs paste cleanup, drag-resize images, dirty-state tracking.
 - Imperative `ref` API: `focus()`, `clear()`, `getHTML()`, `setHTML()`, `insertHTML()`, `getText()`, `getStats()`.
 - Toolbar customization via presets (`all` / `basic` / `minimal`), built-in IDs, or custom buttons.
 - Async server image uploads via `onImageUpload`.
@@ -163,6 +164,12 @@ All visuals are driven by CSS custom properties. Override any of them in your ow
 | `slashMenu` | `boolean \| SlashCommand[]` | `false` | Enable `/` command popup. `true` for defaults, or supply custom commands. |
 | `markdownShortcuts` | `boolean` | `false` | Convert `**bold**`, `# heading`, `- list`, `> quote`, `` `code` ``, `---`, `` ``` `` on the fly. |
 | `bubbleToolbar` | `boolean \| BubbleItem[]` | `false` | Floating toolbar above text selection. |
+| `findReplace` | `boolean` | `false` | Enable Ctrl/Cmd+F find &amp; replace popup. |
+| `autosave` | `AutosaveConfig` | — | `{ interval?, onSave, onError? }` — debounced save when content settles. |
+| `cleanPaste` | `boolean` | `true` | Clean up pasted HTML from Word / Google Docs / Apple Pages. |
+| `imageResize` | `boolean` | `false` | Click an image to reveal drag-resize handles. |
+| `onAutosave` | `(html: string) => void` | — | Fires after every debounced autosave. |
+| `onDirtyChange` | `(isDirty: boolean) => void` | — | Fires when dirty state flips. |
 
 ---
 
@@ -248,6 +255,46 @@ const ai: SlashCommand = {
 <RichTextEditor bubbleToolbar={["bold", "italic", "code", "|", "h1", "h2", "link"]} />
 ```
 
+## Productivity (v2.2)
+
+```tsx
+<RichTextEditor
+  findReplace                                 // Ctrl/Cmd+F → popup
+  imageResize                                 // click image → corner drag handles
+  cleanPaste                                  // strip Word/Google Docs clutter (default true)
+  autosave={{
+    interval: 1500,                           // debounce window in ms
+    onSave: (html) => fetch("/draft", { method: "PUT", body: html }),
+    onError: (err) => console.error(err),
+  }}
+  onDirtyChange={(dirty) => setUnsavedBadge(dirty)}
+/>
+```
+
+### Dirty tracking
+
+```tsx
+const ref = useRef<RichTextEditorHandle>(null)
+
+// After successful save:
+await api.save(ref.current!.getHTML())
+ref.current!.markClean()
+
+// Check from anywhere:
+if (ref.current!.isDirty()) warnBeforeNavigate()
+```
+
+### Open find &amp; replace programmatically
+
+```tsx
+ref.current?.openFindReplace()
+ref.current?.closeFindReplace()
+```
+
+### Paste cleanup
+
+When `cleanPaste` is enabled (default), pasted HTML from Word, Google Docs, or Apple Pages is run through `cleanPastedHtml()` before being inserted. MSO conditional comments, `mso-*` styles, XML namespaces, empty spans and font tags are stripped. Plain pastes from the same editor or simple text are left alone.
+
 ## Imperative API (ref)
 
 ```tsx
@@ -269,7 +316,7 @@ function Editor() {
 }
 ```
 
-**Methods:** `focus()` · `blur()` · `clear()` · `getHTML()` · `setHTML(html)` · `insertHTML(html)` · `getText()` · `execCommand(cmd, value?)` · `getStats()`
+**Methods:** `focus()` · `blur()` · `clear()` · `getHTML()` · `setHTML(html)` · `insertHTML(html)` · `getText()` · `execCommand(cmd, value?)` · `getStats()` · `isDirty()` · `markClean()` · `openFindReplace()` · `closeFindReplace()`
 
 ---
 

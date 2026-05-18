@@ -670,3 +670,141 @@
     margin: 0 0.125rem;
     background: var(--rte-toolbar-separator);
 }
+
+/* ============================
+   Find & Replace popup
+   ============================ */
+.rte-find {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    padding: 0.5rem;
+    background: var(--rte-dropdown-bg);
+    border: 1px solid var(--rte-dropdown-border);
+    border-bottom: none;
+    border-radius: var(--rte-radius) var(--rte-radius) 0 0;
+    box-shadow: var(--rte-dropdown-shadow);
+}
+
+.rte-find-row {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.rte-find-input {
+    flex: 1;
+    min-width: 0;
+    height: 1.75rem;
+    padding: 0 0.5rem;
+    border: 1px solid var(--rte-input-border);
+    border-radius: var(--rte-radius-sm);
+    background: var(--rte-input-bg);
+    color: var(--rte-input-fg);
+    font-size: 0.875rem;
+}
+
+.rte-find-input:focus {
+    outline: none;
+    border-color: var(--rte-input-focus);
+}
+
+.rte-find-count {
+    font-size: 0.75rem;
+    color: var(--rte-muted-fg);
+    min-width: 3rem;
+    text-align: center;
+}
+
+.rte-find-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0 0.5rem;
+    height: 1.75rem;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--rte-btn-fg);
+    border-radius: var(--rte-radius-sm);
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+
+.rte-find-btn:hover:not(:disabled) {
+    background: var(--rte-btn-hover-bg);
+}
+
+.rte-find-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.rte-find-toggle--on {
+    background: var(--rte-btn-active-bg);
+    color: var(--rte-btn-active-fg);
+}
+
+.rte-find-hit {
+    background: rgba(245, 158, 11, 0.35);
+    color: inherit;
+    padding: 0;
+    border-radius: 2px;
+}
+
+.rte-find-hit--active {
+    background: rgba(245, 158, 11, 0.85);
+    color: #1f2937;
+    outline: 2px solid var(--rte-accent);
+}
+
+/* ============================
+   Image resize handles
+   ============================ */
+.rte-resize {
+    pointer-events: none;
+    z-index: 40;
+}
+
+.rte-resize::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    outline: 2px solid var(--rte-accent);
+    outline-offset: -1px;
+    pointer-events: none;
+}
+
+.rte-resize-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: var(--rte-accent);
+    border: 2px solid var(--rte-bg);
+    border-radius: 50%;
+    pointer-events: auto;
+    z-index: 41;
+}
+
+.rte-resize-handle--nw {
+    top: -6px;
+    left: -6px;
+    cursor: nwse-resize;
+}
+
+.rte-resize-handle--ne {
+    top: -6px;
+    right: -6px;
+    cursor: nesw-resize;
+}
+
+.rte-resize-handle--sw {
+    bottom: -6px;
+    left: -6px;
+    cursor: nesw-resize;
+}
+
+.rte-resize-handle--se {
+    bottom: -6px;
+    right: -6px;
+    cursor: nwse-resize;
+}

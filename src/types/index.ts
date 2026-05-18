@@ -81,6 +81,14 @@ export interface RichTextEditorHandle {
   insertHTML(html: string): void
   execCommand(command: string, value?: string): void
   getStats(): EditorStats
+  /** Returns true when current content differs from the value set via `value` prop or `markClean()`. */
+  isDirty(): boolean
+  /** Treat the current content as the new "clean" baseline. */
+  markClean(): void
+  /** Open the find-and-replace popup (no-op when `findReplace` prop is false). */
+  openFindReplace(): void
+  /** Close the find-and-replace popup. */
+  closeFindReplace(): void
 }
 
 export interface RichTextEditorProps {
@@ -141,6 +149,39 @@ export interface RichTextEditorProps {
    * `true` shows defaults; pass an array of `BubbleItem` to customize.
    */
   bubbleToolbar?: boolean | BubbleItem[]
+  /**
+   * Enable the Find & Replace popup (Ctrl/Cmd+F to open).
+   * Default: false.
+   */
+  findReplace?: boolean
+  /**
+   * Autosave configuration. When provided, `onSave` fires after the editor has
+   * been quiet for `interval` ms (default 1500 ms).
+   */
+  autosave?: AutosaveConfig
+  /**
+   * Clean up pasted HTML from Microsoft Word and Google Docs (strip MSO classes,
+   * conditional comments, and other clutter). Default: true.
+   */
+  cleanPaste?: boolean
+  /**
+   * Show drag handles on selected images so the user can resize them inline.
+   * Default: false.
+   */
+  imageResize?: boolean
+  /** Fired after autosave actually runs (after the debounce). */
+  onAutosave?: (html: string) => void
+  /** Fired when dirty state flips (true ↔ false). */
+  onDirtyChange?: (isDirty: boolean) => void
+}
+
+export interface AutosaveConfig {
+  /** Debounce window in ms. Default 1500. */
+  interval?: number
+  /** Save callback. Awaited if it returns a promise. */
+  onSave: (html: string) => void | Promise<void>
+  /** Optional error handler. Defaults to `console.error`. */
+  onError?: (err: unknown) => void
 }
 
 export interface ToolbarButtonProps {

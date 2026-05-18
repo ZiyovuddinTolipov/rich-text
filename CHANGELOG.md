@@ -1,6 +1,22 @@
 # Changelog
 
-## 2.1.0 — Unreleased
+## 2.2.0 — Unreleased
+
+### Added — Productivity
+
+- **Find & Replace** (`findReplace` prop). Press `Ctrl/Cmd+F` to open the popup. Live highlight, prev/next navigation, case toggle, replace one / replace all.
+- **Autosave** (`autosave` prop). Debounced save callback that fires after the editor has been quiet (default 1500 ms). Identical content is skipped automatically.
+- **Word / Google Docs paste cleanup** (`cleanPaste` prop, default `true`). Strips MSO conditional comments, XML namespaces, `mso-*` styles, empty spans, and other clutter when pasting from Microsoft Word, Google Docs, or Apple Pages.
+- **Image drag-resize** (`imageResize` prop). Click an image to reveal four corner handles. Aspect ratio is preserved; sizes are promoted to sanitizer-safe `width`/`height` attributes.
+- **Dirty tracking**. New ref methods `isDirty()` and `markClean()`, plus `onDirtyChange(isDirty)` callback. Uses FNV-1a hashing so it stays cheap on large documents.
+- New ref methods: `openFindReplace()`, `closeFindReplace()`.
+- New exports: `FindReplace`, `ImageResizer`, `createAutosaveScheduler`, `hashString`, `isDirtyAgainst`, `cleanPastedHtml`, `isExternalPaste`, `looksLikeWordPaste`, `looksLikeGoogleDocsPaste`, `looksLikeApplePages`, type `AutosaveConfig`.
+
+### Changed
+
+- Sanitizer now allows `<mark>` (used by Find & Replace highlights) and the `width` / `height` attributes (used by image resize).
+
+## 2.1.0 — 2026-05-18
 
 ### Added — Notion-style UX
 

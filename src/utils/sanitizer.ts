@@ -4,7 +4,7 @@ const DEFAULT_ALLOWED_TAGS = [
   "p", "div", "span", "br",
   "strong", "b", "em", "i", "u", "s", "strike", "sub", "sup",
   "h1", "h2", "h3", "h4", "h5", "h6",
-  "blockquote", "pre", "code",
+  "blockquote", "pre", "code", "mark",
   "ul", "ol", "li",
   "a", "img",
   "table", "thead", "tbody", "tr", "td", "th",
@@ -15,6 +15,7 @@ const DEFAULT_ALLOWED_ATTRS = [
   "href", "src", "alt", "title", "target", "rel",
   "class", "colspan", "rowspan",
   "data-type", "data-checked",
+  "width", "height",
 ]
 
 const URL_ATTR = new Set(["href", "src"])
