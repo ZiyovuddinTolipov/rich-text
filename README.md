@@ -1,8 +1,13 @@
 # @tolipovjs/rich-text
 
-[![npm version](https://img.shields.io/npm/v/@tolipovjs/rich-text.svg)](https://www.npmjs.com/package/@tolipovjs/rich-text)
+[![npm version](https://img.shields.io/npm/v/@tolipovjs/rich-text.svg?color=brightgreen)](https://www.npmjs.com/package/@tolipovjs/rich-text)
 [![npm downloads](https://img.shields.io/npm/dm/@tolipovjs/rich-text.svg)](https://www.npmjs.com/package/@tolipovjs/rich-text)
+[![CI](https://github.com/ZiyovuddinTolipov/rich-text/actions/workflows/ci.yml/badge.svg)](https://github.com/ZiyovuddinTolipov/rich-text/actions/workflows/ci.yml)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/@tolipovjs/rich-text)](https://bundlephobia.com/package/@tolipovjs/rich-text)
+[![types](https://img.shields.io/npm/types/@tolipovjs/rich-text.svg)](https://www.npmjs.com/package/@tolipovjs/rich-text)
 [![license](https://img.shields.io/npm/l/@tolipovjs/rich-text.svg)](./LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ZiyovuddinTolipov/rich-text/pulls)
+[![Playground](https://img.shields.io/badge/playground-live-ff69b4?logo=vercel)](https://rich-text-website.vercel.app/playground)
 
 A modern, lightweight React rich text editor — **no Tailwind required**, **fully themeable via CSS variables**, with an imperative ref API and a customizable toolbar.
 
