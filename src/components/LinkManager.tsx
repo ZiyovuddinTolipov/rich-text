@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
-import { Link, Unlink } from "lucide-react"
+import { Link as LinkIcon, Unlink } from "lucide-react"
 import { EditorCommands } from "../utils/commands"
 
 export const LinkManager: React.FC = () => {
@@ -17,77 +17,79 @@ export const LinkManager: React.FC = () => {
         setIsOpen(false)
       }
     }
-
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
   const handleInsertLink = () => {
-    if (url) {
-      EditorCommands.createLink(url, text)
-      setUrl("")
-      setText("")
-      setIsOpen(false)
-    }
+    if (!url) return
+    EditorCommands.createLink(url, text || undefined)
+    setUrl("")
+    setText("")
+    setIsOpen(false)
   }
 
-  const handleRemoveLink = () => {
-    EditorCommands.execCommand("unlink")
-  }
+  const handleRemoveLink = () => EditorCommands.execCommand("unlink")
 
   return (
-    <div className="relative flex" ref={dropdownRef}>
+    <div className="rte-dropdown-anchor" ref={dropdownRef} style={{ display: "flex" }}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => setIsOpen((v) => !v)}
+        className="rte-btn"
         title="Insert Link"
+        aria-haspopup="true"
+        aria-expanded={isOpen}
       >
-        <Link size={16} />
+        <LinkIcon size={16} />
       </button>
-
       <button
         type="button"
+        onMouseDown={(e) => e.preventDefault()}
         onClick={handleRemoveLink}
-        className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+        className="rte-btn"
         title="Remove Link"
+        aria-label="Remove link"
       >
         <Unlink size={16} />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 min-w-[250px]">
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">URL:</label>
-              <input
-                type="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://example.com"
-                className="w-full px-2 py-1 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Text (optional):</label>
-              <input
-                type="text"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="Link text"
-                className="w-full px-2 py-1 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
-              />
-            </div>
-
-            <button
-              onClick={handleInsertLink}
-              disabled={!url}
-              className="w-full px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-            >
-              Insert Link
-            </button>
+        <div className="rte-dropdown" role="dialog" aria-label="Insert link" style={{ minWidth: 260 }}>
+          <div className="rte-dropdown-field">
+            <label className="rte-dropdown-label" htmlFor="rte-link-url">URL</label>
+            <input
+              id="rte-link-url"
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://example.com"
+              className="rte-input"
+              style={{ width: "100%" }}
+            />
           </div>
+          <div className="rte-dropdown-field">
+            <label className="rte-dropdown-label" htmlFor="rte-link-text">Text (optional)</label>
+            <input
+              id="rte-link-text"
+              type="text"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Link text"
+              className="rte-input"
+              style={{ width: "100%" }}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleInsertLink}
+            disabled={!url}
+            className="rte-btn rte-btn--primary"
+            style={{ width: "100%" }}
+          >
+            Insert Link
+          </button>
         </div>
       )}
     </div>

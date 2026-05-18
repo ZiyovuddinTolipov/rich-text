@@ -1,0 +1,672 @@
+/* @tolipovjs/rich-text — Default stylesheet
+ *
+ * Override any --rte-* variable in your own CSS to theme.
+ * Switch dark mode by setting data-rte-theme="dark" on the editor root
+ * (the library does this automatically based on the `theme` prop).
+ */
+
+:root,
+[data-rte-theme="light"] {
+    --rte-bg: #ffffff;
+    --rte-fg: #111827;
+    --rte-muted-fg: #6b7280;
+    --rte-placeholder-fg: #9ca3af;
+
+    --rte-border: #e5e7eb;
+    --rte-border-strong: #d1d5db;
+
+    --rte-surface: #ffffff;
+    --rte-surface-elevated: #ffffff;
+
+    --rte-toolbar-bg: #f9fafb;
+    --rte-toolbar-fg: #374151;
+    --rte-toolbar-separator: #e5e7eb;
+
+    --rte-btn-fg: #374151;
+    --rte-btn-hover-bg: #f3f4f6;
+    --rte-btn-active-bg: #3b82f6;
+    --rte-btn-active-fg: #ffffff;
+
+    --rte-accent: #3b82f6;
+    --rte-accent-hover: #2563eb;
+    --rte-accent-fg: #ffffff;
+
+    --rte-input-bg: #ffffff;
+    --rte-input-fg: #111827;
+    --rte-input-border: #d1d5db;
+    --rte-input-focus: #3b82f6;
+
+    --rte-dropdown-bg: #ffffff;
+    --rte-dropdown-border: #e5e7eb;
+    --rte-dropdown-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -4px rgba(0, 0, 0, 0.1);
+
+    --rte-code-bg: #f3f4f6;
+    --rte-code-fg: #111827;
+    --rte-quote-border: #e5e7eb;
+    --rte-quote-fg: #6b7280;
+    --rte-table-border: #d1d5db;
+    --rte-table-header-bg: #f3f4f6;
+    --rte-image-outline: #3b82f6;
+
+    --rte-radius: 0.5rem;
+    --rte-radius-sm: 0.25rem;
+    --rte-radius-md: 0.375rem;
+    --rte-font-family: inherit;
+    --rte-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --rte-min-height: 300px;
+    --rte-toolbar-gap: 0.25rem;
+    --rte-toolbar-padding: 0.5rem;
+}
+
+[data-rte-theme="dark"] {
+    --rte-bg: #0f172a;
+    --rte-fg: #f9fafb;
+    --rte-muted-fg: #9ca3af;
+    --rte-placeholder-fg: #6b7280;
+
+    --rte-border: #374151;
+    --rte-border-strong: #4b5563;
+
+    --rte-surface: #1f2937;
+    --rte-surface-elevated: #111827;
+
+    --rte-toolbar-bg: #1f2937;
+    --rte-toolbar-fg: #d1d5db;
+    --rte-toolbar-separator: #374151;
+
+    --rte-btn-fg: #d1d5db;
+    --rte-btn-hover-bg: #374151;
+    --rte-btn-active-bg: #3b82f6;
+    --rte-btn-active-fg: #ffffff;
+
+    --rte-input-bg: #111827;
+    --rte-input-fg: #f9fafb;
+    --rte-input-border: #4b5563;
+
+    --rte-dropdown-bg: #1f2937;
+    --rte-dropdown-border: #374151;
+    --rte-dropdown-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5),
+        0 4px 6px -4px rgba(0, 0, 0, 0.4);
+
+    --rte-code-bg: #1f2937;
+    --rte-code-fg: #e5e7eb;
+    --rte-quote-border: #374151;
+    --rte-quote-fg: #9ca3af;
+    --rte-table-border: #4b5563;
+    --rte-table-header-bg: #1f2937;
+}
+
+/* Auto theme — follow OS preference */
+@media (prefers-color-scheme: dark) {
+    [data-rte-theme="auto"] {
+        --rte-bg: #0f172a;
+        --rte-fg: #f9fafb;
+        --rte-muted-fg: #9ca3af;
+        --rte-placeholder-fg: #6b7280;
+
+        --rte-border: #374151;
+        --rte-border-strong: #4b5563;
+
+        --rte-surface: #1f2937;
+        --rte-surface-elevated: #111827;
+
+        --rte-toolbar-bg: #1f2937;
+        --rte-toolbar-fg: #d1d5db;
+        --rte-toolbar-separator: #374151;
+
+        --rte-btn-fg: #d1d5db;
+        --rte-btn-hover-bg: #374151;
+
+        --rte-input-bg: #111827;
+        --rte-input-fg: #f9fafb;
+        --rte-input-border: #4b5563;
+
+        --rte-dropdown-bg: #1f2937;
+        --rte-dropdown-border: #374151;
+
+        --rte-code-bg: #1f2937;
+        --rte-code-fg: #e5e7eb;
+        --rte-quote-border: #374151;
+        --rte-quote-fg: #9ca3af;
+        --rte-table-border: #4b5563;
+        --rte-table-header-bg: #1f2937;
+    }
+}
+
+/* Root container */
+.rte-root {
+    color: var(--rte-fg);
+    background: var(--rte-bg);
+    border: 1px solid var(--rte-border);
+    border-radius: var(--rte-radius);
+    overflow: hidden;
+    font-family: var(--rte-font-family);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Toolbar */
+.rte-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--rte-toolbar-gap);
+    padding: var(--rte-toolbar-padding);
+    background: var(--rte-toolbar-bg);
+    color: var(--rte-toolbar-fg);
+    border-bottom: 1px solid var(--rte-border);
+}
+
+.rte-toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+}
+
+.rte-toolbar-separator {
+    width: 1px;
+    height: 1.5rem;
+    background: var(--rte-toolbar-separator);
+    margin: 0 0.25rem;
+}
+
+/* Buttons */
+.rte-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 0.5rem;
+    border: none;
+    border-radius: var(--rte-radius-sm);
+    background: transparent;
+    color: var(--rte-btn-fg);
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+    font: inherit;
+    line-height: 1;
+}
+
+.rte-btn:hover:not(:disabled) {
+    background: var(--rte-btn-hover-bg);
+}
+
+.rte-btn--active {
+    background: var(--rte-btn-active-bg);
+    color: var(--rte-btn-active-fg);
+}
+
+.rte-btn--active:hover:not(:disabled) {
+    background: var(--rte-btn-active-bg);
+    filter: brightness(0.95);
+}
+
+.rte-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.rte-btn--primary {
+    background: var(--rte-accent);
+    color: var(--rte-accent-fg);
+}
+
+.rte-btn--primary:hover:not(:disabled) {
+    background: var(--rte-accent-hover);
+}
+
+/* Select / Inputs */
+.rte-select,
+.rte-input {
+    background: var(--rte-input-bg);
+    color: var(--rte-input-fg);
+    border: 1px solid var(--rte-input-border);
+    border-radius: var(--rte-radius-sm);
+    padding: 0.25rem 0.5rem;
+    font: inherit;
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.rte-select:focus,
+.rte-input:focus {
+    border-color: var(--rte-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--rte-accent) 25%, transparent);
+}
+
+/* Dropdown (popovers used by color/link/table managers) */
+.rte-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 0.25rem;
+    min-width: 200px;
+    padding: 0.75rem;
+    background: var(--rte-dropdown-bg);
+    color: var(--rte-fg);
+    border: 1px solid var(--rte-dropdown-border);
+    border-radius: var(--rte-radius);
+    box-shadow: var(--rte-dropdown-shadow);
+    z-index: 50;
+}
+
+.rte-dropdown-anchor {
+    position: relative;
+}
+
+.rte-dropdown-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rte-dropdown-field {
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.rte-dropdown-field:last-child {
+    margin-bottom: 0;
+}
+
+.rte-dropdown-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+/* Status bar — between toolbar and edit area */
+.rte-statusbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.25rem 0.75rem;
+    background: var(--rte-toolbar-bg);
+    color: var(--rte-muted-fg);
+    border-bottom: 1px solid var(--rte-border);
+    font-size: 0.875rem;
+}
+
+.rte-mode-toggle {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    background: var(--rte-btn-hover-bg);
+    color: var(--rte-btn-fg);
+    border: none;
+    border-radius: var(--rte-radius-sm);
+    cursor: pointer;
+}
+
+.rte-mode-toggle:hover {
+    background: var(--rte-border);
+}
+
+/* Editor surface */
+.rte-surface {
+    min-height: var(--rte-min-height);
+    padding: 1rem;
+    background: var(--rte-surface);
+    color: var(--rte-fg);
+    outline: none;
+    line-height: 1.6;
+    overflow-y: auto;
+}
+
+.rte-surface:focus {
+    outline: none;
+}
+
+.rte-surface[data-readonly="true"] {
+    cursor: default;
+}
+
+.rte-surface[data-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* HTML source view */
+.rte-html-source {
+    width: 100%;
+    min-height: var(--rte-min-height);
+    padding: 1rem;
+    background: var(--rte-surface);
+    color: var(--rte-fg);
+    font-family: var(--rte-font-mono);
+    font-size: 0.875rem;
+    border: none;
+    resize: vertical;
+    outline: none;
+}
+
+/* Placeholder */
+.rte-surface:empty:before,
+.rte-surface[data-empty="true"]:before {
+    content: attr(data-placeholder);
+    color: var(--rte-placeholder-fg);
+    pointer-events: none;
+}
+
+/* Color picker */
+.rte-color-swatch {
+    width: 1rem;
+    height: 1rem;
+    border: 1px solid var(--rte-border-strong);
+    border-radius: var(--rte-radius-sm);
+}
+
+.rte-color-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.rte-color-tile {
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 1px solid var(--rte-border-strong);
+    border-radius: var(--rte-radius-sm);
+    cursor: pointer;
+    transition: transform 120ms ease;
+    padding: 0;
+}
+
+.rte-color-tile:hover {
+    transform: scale(1.1);
+}
+
+.rte-color-input {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 1px solid var(--rte-input-border);
+    border-radius: var(--rte-radius-sm);
+    background: var(--rte-input-bg);
+    cursor: pointer;
+}
+
+/* Word/char count */
+.rte-stats {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    background: var(--rte-toolbar-bg);
+    color: var(--rte-muted-fg);
+    border-top: 1px solid var(--rte-border);
+    font-size: 0.75rem;
+}
+
+/* Hidden helper */
+.rte-hidden {
+    display: none !important;
+}
+
+/* Spinning icon (image upload) */
+.rte-spin {
+    animation: rte-spin 1s linear infinite;
+}
+
+@keyframes rte-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================
+   Content styles (applied to the editor surface)
+   ============================ */
+
+.rte-surface img {
+    max-width: 100%;
+    height: auto;
+    cursor: pointer;
+    border-radius: var(--rte-radius-sm);
+}
+
+.rte-surface img:hover {
+    outline: 2px solid var(--rte-image-outline);
+}
+
+.rte-surface table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+}
+
+.rte-surface table td,
+.rte-surface table th {
+    border: 1px solid var(--rte-table-border);
+    padding: 0.5rem;
+    text-align: left;
+}
+
+.rte-surface table th {
+    background: var(--rte-table-header-bg);
+    font-weight: 600;
+}
+
+.rte-surface blockquote {
+    border-left: 4px solid var(--rte-quote-border);
+    margin: 1em 0;
+    padding-left: 1em;
+    color: var(--rte-quote-fg);
+}
+
+.rte-surface pre {
+    background: var(--rte-code-bg);
+    color: var(--rte-code-fg);
+    border-radius: var(--rte-radius-md);
+    padding: 1em;
+    overflow-x: auto;
+    font-family: var(--rte-font-mono);
+    font-size: 0.875rem;
+}
+
+.rte-surface code {
+    background: var(--rte-code-bg);
+    color: var(--rte-code-fg);
+    padding: 0.125rem 0.25rem;
+    border-radius: var(--rte-radius-sm);
+    font-family: var(--rte-font-mono);
+    font-size: 0.9em;
+}
+
+.rte-surface pre code {
+    background: transparent;
+    padding: 0;
+}
+
+.rte-surface a {
+    color: var(--rte-accent);
+    text-decoration: underline;
+}
+
+.rte-surface h1,
+.rte-surface h2,
+.rte-surface h3,
+.rte-surface h4,
+.rte-surface h5,
+.rte-surface h6 {
+    margin: 1em 0 0.5em;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.rte-surface h1 { font-size: 1.875rem; }
+.rte-surface h2 { font-size: 1.5rem; }
+.rte-surface h3 { font-size: 1.25rem; }
+.rte-surface h4 { font-size: 1.125rem; }
+.rte-surface h5 { font-size: 1rem; }
+.rte-surface h6 { font-size: 0.875rem; }
+
+.rte-surface ul,
+.rte-surface ol {
+    margin: 0.5em 0;
+    padding-left: 1.5em;
+}
+
+.rte-surface ul {
+    list-style: disc;
+}
+
+.rte-surface ol {
+    list-style: decimal;
+}
+
+.rte-surface hr {
+    border: none;
+    border-top: 1px solid var(--rte-border);
+    margin: 1.5em 0;
+}
+
+/* Task list (checklist) */
+.rte-surface ul[data-type="task"] {
+    list-style: none;
+    padding-left: 0;
+}
+
+.rte-surface ul[data-type="task"] li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding-left: 0;
+}
+
+.rte-surface ul[data-type="task"] li[data-checked="true"] {
+    color: var(--rte-muted-fg);
+    text-decoration: line-through;
+}
+
+.rte-surface ul[data-type="task"] li:before {
+    content: "";
+    display: inline-block;
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.25rem;
+    border: 1.5px solid var(--rte-border-strong);
+    border-radius: var(--rte-radius-sm);
+    background: var(--rte-surface);
+    cursor: pointer;
+}
+
+.rte-surface ul[data-type="task"] li[data-checked="true"]:before {
+    background: var(--rte-accent);
+    border-color: var(--rte-accent);
+}
+
+/* ============================
+   Slash command menu
+   ============================ */
+.rte-slash-menu {
+    position: absolute;
+    min-width: 240px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 0.25rem;
+    background: var(--rte-dropdown-bg);
+    color: var(--rte-fg);
+    border: 1px solid var(--rte-dropdown-border);
+    border-radius: var(--rte-radius);
+    box-shadow: var(--rte-dropdown-shadow);
+    z-index: 60;
+}
+
+.rte-slash-item {
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+    gap: 0.5rem;
+    padding: 0.5rem 0.625rem;
+    border: none;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    border-radius: var(--rte-radius-sm);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.875rem;
+}
+
+.rte-slash-item--active {
+    background: var(--rte-btn-hover-bg);
+}
+
+.rte-slash-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--rte-muted-fg);
+    flex-shrink: 0;
+}
+
+.rte-slash-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+}
+
+.rte-slash-label {
+    font-weight: 500;
+}
+
+.rte-slash-desc {
+    font-size: 0.75rem;
+    color: var(--rte-muted-fg);
+}
+
+.rte-slash-empty {
+    padding: 0.75rem;
+    text-align: center;
+    color: var(--rte-muted-fg);
+    font-size: 0.875rem;
+}
+
+/* ============================
+   Bubble toolbar (floating selection toolbar)
+   ============================ */
+.rte-bubble {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.125rem;
+    padding: 0.25rem;
+    background: var(--rte-dropdown-bg);
+    border: 1px solid var(--rte-dropdown-border);
+    border-radius: var(--rte-radius);
+    box-shadow: var(--rte-dropdown-shadow);
+    z-index: 60;
+}
+
+.rte-bubble-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: none;
+    background: transparent;
+    color: var(--rte-btn-fg);
+    border-radius: var(--rte-radius-sm);
+    cursor: pointer;
+}
+
+.rte-bubble-btn:hover {
+    background: var(--rte-btn-hover-bg);
+}
+
+.rte-bubble-sep {
+    width: 1px;
+    height: 1.25rem;
+    margin: 0 0.125rem;
+    background: var(--rte-toolbar-separator);
+}

@@ -2,40 +2,22 @@
 
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
-import { Palette } from "lucide-react"
+import { Palette, Highlighter } from "lucide-react"
 import type { ColorPickerProps } from "../types"
 
-const PRESET_COLORS = [
-  "#000000",
-  "#333333",
-  "#666666",
-  "#999999",
-  "#CCCCCC",
-  "#FFFFFF",
-  "#FF0000",
-  "#FF6600",
-  "#FFCC00",
-  "#FFFF00",
-  "#CCFF00",
-  "#66FF00",
-  "#00FF00",
-  "#00FF66",
-  "#00FFCC",
-  "#00FFFF",
-  "#00CCFF",
-  "#0066FF",
-  "#0000FF",
-  "#6600FF",
-  "#CC00FF",
-  "#FF00FF",
-  "#FF00CC",
-  "#FF0066",
+const DEFAULT_PRESETS = [
+  "#000000", "#333333", "#666666", "#999999", "#CCCCCC", "#FFFFFF",
+  "#FF0000", "#FF6600", "#FFCC00", "#FFFF00", "#CCFF00", "#66FF00",
+  "#00FF00", "#00FF66", "#00FFCC", "#00FFFF", "#00CCFF", "#0066FF",
+  "#0000FF", "#6600FF", "#CC00FF", "#FF00FF", "#FF00CC", "#FF0066",
 ]
 
-export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, type }) => {
+export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, type, presets }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [customColor, setCustomColor] = useState(color)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const tiles = presets && presets.length > 0 ? presets : DEFAULT_PRESETS
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -43,7 +25,6 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, type 
         setIsOpen(false)
       }
     }
-
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
@@ -54,51 +35,61 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange, type 
     setIsOpen(false)
   }
 
+  const Icon = type === "text" ? Palette : Highlighter
+
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="rte-dropdown-anchor" ref={dropdownRef}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-        title={`${type === "text" ? "Text" : "Background"} Color`}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => setIsOpen((v) => !v)}
+        className="rte-btn"
+        title={type === "text" ? "Text Color" : "Background Color"}
+        aria-haspopup="true"
+        aria-expanded={isOpen}
       >
-        <Palette size={16} />
-        <div className="w-4 h-4 border border-gray-300 rounded" style={{ backgroundColor: color }} />
+        <Icon size={16} />
+        <span className="rte-color-swatch" style={{ background: color }} aria-hidden="true" />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 min-w-[200px]">
-          <div className="grid grid-cols-6 gap-1 mb-3">
-            {PRESET_COLORS.map((presetColor) => (
+        <div className="rte-dropdown" role="dialog" aria-label="Color picker">
+          <div className="rte-color-grid">
+            {tiles.map((presetColor) => (
               <button
                 key={presetColor}
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleColorSelect(presetColor)}
-                className="w-6 h-6 rounded border border-gray-300 hover:scale-110 transition-transform"
-                style={{ backgroundColor: presetColor }}
+                className="rte-color-tile"
+                style={{ background: presetColor }}
                 title={presetColor}
+                aria-label={`Color ${presetColor}`}
               />
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="rte-dropdown-row">
             <input
               type="color"
               value={customColor}
               onChange={(e) => setCustomColor(e.target.value)}
-              className="w-8 h-8 rounded border border-gray-300"
+              className="rte-color-input"
+              aria-label="Custom color"
             />
             <input
               type="text"
               value={customColor}
               onChange={(e) => setCustomColor(e.target.value)}
-              className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
+              className="rte-input"
               placeholder="#000000"
+              style={{ flex: 1 }}
             />
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleColorSelect(customColor)}
-              className="px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+              className="rte-btn rte-btn--primary"
             >
               Apply
             </button>

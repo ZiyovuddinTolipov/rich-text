@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
-import { Table } from "lucide-react"
+import { Table as TableIcon } from "lucide-react"
 import { EditorCommands } from "../utils/commands"
 
 export const TableManager: React.FC = () => {
@@ -17,7 +17,6 @@ export const TableManager: React.FC = () => {
         setIsOpen(false)
       }
     }
-
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
@@ -28,50 +27,55 @@ export const TableManager: React.FC = () => {
   }
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="rte-dropdown-anchor" ref={dropdownRef}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => setIsOpen((v) => !v)}
+        className="rte-btn"
         title="Insert Table"
+        aria-haspopup="true"
+        aria-expanded={isOpen}
       >
-        <Table size={16} />
+        <TableIcon size={16} />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50">
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">Rows:</label>
-              <input
-                type="number"
-                min="1"
-                max="20"
-                value={rows}
-                onChange={(e) => setRows(Number.parseInt(e.target.value) || 1)}
-                className="w-full px-2 py-1 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Columns:</label>
-              <input
-                type="number"
-                min="1"
-                max="10"
-                value={cols}
-                onChange={(e) => setCols(Number.parseInt(e.target.value) || 1)}
-                className="w-full px-2 py-1 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
-              />
-            </div>
-
-            <button
-              onClick={handleInsertTable}
-              className="w-full px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Insert Table
-            </button>
+        <div className="rte-dropdown" role="dialog" aria-label="Insert table">
+          <div className="rte-dropdown-field">
+            <label className="rte-dropdown-label" htmlFor="rte-table-rows">Rows</label>
+            <input
+              id="rte-table-rows"
+              type="number"
+              min={1}
+              max={50}
+              value={rows}
+              onChange={(e) => setRows(Math.max(1, Number(e.target.value) || 1))}
+              className="rte-input"
+              style={{ width: "100%" }}
+            />
           </div>
+          <div className="rte-dropdown-field">
+            <label className="rte-dropdown-label" htmlFor="rte-table-cols">Columns</label>
+            <input
+              id="rte-table-cols"
+              type="number"
+              min={1}
+              max={20}
+              value={cols}
+              onChange={(e) => setCols(Math.max(1, Number(e.target.value) || 1))}
+              className="rte-input"
+              style={{ width: "100%" }}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleInsertTable}
+            className="rte-btn rte-btn--primary"
+            style={{ width: "100%" }}
+          >
+            Insert Table
+          </button>
         </div>
       )}
     </div>

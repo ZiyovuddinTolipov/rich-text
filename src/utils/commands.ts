@@ -1,5 +1,14 @@
+import type { EditorStats } from "../types"
+
+const isClient = () => typeof document !== "undefined"
+
+function escapeAttr(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+}
+
 export class EditorCommands {
   static execCommand(command: string, value?: string): boolean {
+    if (!isClient()) return false
     try {
       return document.execCommand(command, false, value)
     } catch (error) {
@@ -9,77 +18,104 @@ export class EditorCommands {
   }
 
   static queryCommandState(command: string): boolean {
+    if (!isClient()) return false
     try {
       return document.queryCommandState(command)
-    } catch (error) {
+    } catch {
       return false
     }
   }
 
   static queryCommandValue(command: string): string {
+    if (!isClient()) return ""
     try {
       return document.queryCommandValue(command)
-    } catch (error) {
+    } catch {
       return ""
     }
   }
 
   static insertHTML(html: string): void {
+    if (!isClient()) return
     const selection = window.getSelection()
-    if (!selection?.rangeCount) return
+    if (!selection?.rangeCount) {
+      document.execCommand("insertHTML", false, html)
+      return
+    }
 
     const range = selection.getRangeAt(0)
     range.deleteContents()
 
-    const div = document.createElement("div")
-    div.innerHTML = html
+    const template = document.createElement("template")
+    template.innerHTML = html
+    const fragment = template.content
 
-    const fragment = document.createDocumentFragment()
-    let node
-    while ((node = div.firstChild)) {
-      fragment.appendChild(node)
-    }
-
+    const lastNode = fragment.lastChild
     range.insertNode(fragment)
-    selection.removeAllRanges()
-    selection.addRange(range)
+
+    if (lastNode) {
+      range.setStartAfter(lastNode)
+      range.setEndAfter(lastNode)
+      selection.removeAllRanges()
+      selection.addRange(range)
+    }
   }
 
   static insertImage(src: string, alt?: string): void {
-    const img = `<img src="${src}" alt="${alt || ""}" style="max-width: 100%; height: auto;" />`
-    this.insertHTML(img)
+    const safeAlt = alt ? escapeAttr(alt) : ""
+    const safeSrc = escapeAttr(src)
+    this.insertHTML(`<img src="${safeSrc}" alt="${safeAlt}" />`)
   }
 
   static insertTable(rows: number, cols: number): void {
-    let tableHTML = '<table border="1" style="border-collapse: collapse; width: 100%;">'
-
-    for (let i = 0; i < rows; i++) {
-      tableHTML += "<tr>"
-      for (let j = 0; j < cols; j++) {
-        tableHTML += '<td style="padding: 8px; border: 1px solid #ccc;">&nbsp;</td>'
-      }
-      tableHTML += "</tr>"
+    const r = Math.max(1, Math.min(rows, 50))
+    const c = Math.max(1, Math.min(cols, 20))
+    let html = "<table><thead><tr>"
+    for (let j = 0; j < c; j++) html += "<th>&nbsp;</th>"
+    html += "</tr></thead><tbody>"
+    for (let i = 0; i < r - 1; i++) {
+      html += "<tr>"
+      for (let j = 0; j < c; j++) html += "<td>&nbsp;</td>"
+      html += "</tr>"
     }
-
-    tableHTML += "</table><p>&nbsp;</p>"
-    this.insertHTML(tableHTML)
+    html += "</tbody></table><p><br /></p>"
+    this.insertHTML(html)
   }
 
   static createLink(url: string, text?: string): void {
+    if (!isClient()) return
+    const safeUrl = escapeAttr(url)
     const selection = window.getSelection()
-    if (!selection?.toString() && !text) {
-      text = url
-    }
+    const hasSelection = !!selection?.toString()
 
-    if (text) {
-      this.insertHTML(`<a href="${url}" target="_blank">${text}</a>`)
-    } else {
+    if (hasSelection && !text) {
       this.execCommand("createLink", url)
+      // Add target/rel to the newly created anchor
+      const anchor = selection?.anchorNode?.parentElement?.closest("a")
+      if (anchor) {
+        anchor.setAttribute("target", "_blank")
+        anchor.setAttribute("rel", "noopener noreferrer")
+      }
+    } else {
+      const label = text ? escapeAttr(text) : safeUrl
+      this.insertHTML(`<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${label}</a>`)
     }
+  }
+
+  static insertChecklist(): void {
+    this.insertHTML('<ul data-type="task"><li data-checked="false">&nbsp;</li></ul>')
+  }
+
+  static insertHorizontalRule(): void {
+    this.execCommand("insertHorizontalRule")
   }
 
   static setFontSize(size: string): void {
     this.execCommand("fontSize", size)
+  }
+
+  static setFontName(name: string): void {
+    this.execCommand("fontName", name)
   }
 
   static setForeColor(color: string): void {
@@ -87,6 +123,34 @@ export class EditorCommands {
   }
 
   static setBackColor(color: string): void {
-    this.execCommand("backColor", color)
+    // Browsers differ on backColor vs hiliteColor
+    if (!this.execCommand("hiliteColor", color)) {
+      this.execCommand("backColor", color)
+    }
+  }
+
+  static indent(): void {
+    this.execCommand("indent")
+  }
+
+  static outdent(): void {
+    this.execCommand("outdent")
+  }
+
+  static stats(html: string): EditorStats {
+    const text = this.extractText(html).trim()
+    if (!text) return { characters: 0, charactersNoSpaces: 0, words: 0 }
+    return {
+      characters: text.length,
+      charactersNoSpaces: text.replace(/\s/g, "").length,
+      words: text.split(/\s+/).filter(Boolean).length,
+    }
+  }
+
+  static extractText(html: string): string {
+    if (!isClient()) return html.replace(/<[^>]*>/g, "")
+    const div = document.createElement("div")
+    div.innerHTML = html
+    return div.textContent || ""
   }
 }

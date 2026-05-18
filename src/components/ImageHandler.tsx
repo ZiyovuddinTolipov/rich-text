@@ -2,27 +2,33 @@
 
 import type React from "react"
 import { useRef, useState } from "react"
-import { ImageIcon, Upload } from "lucide-react"
+import { ImageIcon, Loader2 } from "lucide-react"
 import { EditorCommands } from "../utils/commands"
+import { useRichTextEditor } from "../context"
 
 export const ImageHandler: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const { onImageUpload } = useRichTextEditor()
 
-  const handleImageUpload = async (file: File) => {
+  const handleFile = async (file: File) => {
     setIsUploading(true)
-
     try {
-      // Convert to base64 for demo - in real app, upload to server
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const src = e.target?.result as string
-        EditorCommands.insertImage(src, file.name)
-        setIsUploading(false)
+      let src: string
+      if (onImageUpload) {
+        src = await onImageUpload(file)
+      } else {
+        src = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = (e) => resolve(e.target?.result as string)
+          reader.onerror = () => reject(reader.error)
+          reader.readAsDataURL(file)
+        })
       }
-      reader.readAsDataURL(file)
+      EditorCommands.insertImage(src, file.name)
     } catch (error) {
       console.error("Image upload failed:", error)
+    } finally {
       setIsUploading(false)
     }
   }
@@ -30,34 +36,31 @@ export const ImageHandler: React.FC = () => {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file && file.type.startsWith("image/")) {
-      handleImageUpload(file)
+      void handleFile(file)
     }
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
-    }
-  }
-
-  const handleImageUrl = () => {
-    const url = prompt("Enter image URL:")
-    if (url) {
-      EditorCommands.insertImage(url)
-    }
+    if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
   return (
-    <div className="relative">
+    <div className="rte-dropdown-anchor">
       <button
         type="button"
+        onMouseDown={(e) => e.preventDefault()}
         onClick={() => fileInputRef.current?.click()}
         disabled={isUploading}
-        className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+        className="rte-btn"
         title="Insert Image"
+        aria-label="Insert image"
       >
-        {isUploading ? <Upload size={16} className="animate-spin" /> : <ImageIcon size={16} />}
+        {isUploading ? <Loader2 size={16} className="rte-spin" /> : <ImageIcon size={16} />}
       </button>
-
-      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="rte-hidden"
+      />
     </div>
   )
 }

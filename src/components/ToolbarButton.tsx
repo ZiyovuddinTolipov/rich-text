@@ -2,6 +2,7 @@
 
 import type React from "react"
 import type { ToolbarButtonProps } from "../types"
+import { EditorCommands } from "../utils/commands"
 
 export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   command,
@@ -11,25 +12,25 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   onClick,
   disabled = false,
 }) => {
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault()
     if (onClick) {
       onClick()
-    } else {
-      document.execCommand(command, false)
+    } else if (command) {
+      EditorCommands.execCommand(command)
     }
   }
 
   return (
     <button
       type="button"
+      onMouseDown={(e) => e.preventDefault()}
       onClick={handleClick}
       disabled={disabled}
-      className={`
-        flex items-center justify-center w-8 h-8 rounded transition-colors
-        ${isActive ? "bg-blue-500 text-white" : "hover:bg-gray-100 dark:hover:bg-gray-700"}
-        ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-      `}
+      aria-pressed={isActive || undefined}
+      aria-label={title}
       title={title}
+      className={`rte-btn${isActive ? " rte-btn--active" : ""}`}
     >
       {icon}
     </button>

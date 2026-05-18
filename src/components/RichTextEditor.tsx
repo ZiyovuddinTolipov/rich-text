@@ -1,286 +1,448 @@
 "use client"
 
 import type React from "react"
-import { useRef, useEffect, useState, useCallback } from "react"
+import {
+  forwardRef,
+  useRef,
+  useEffect,
+  useState,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+} from "react"
 import { Toolbar } from "./Toolbar"
+import { SlashMenu } from "./SlashMenu"
+import { BubbleToolbar } from "./BubbleToolbar"
 import { HTMLSanitizer } from "../utils/sanitizer"
-import type { RichTextEditorProps } from "../types"
+import { EditorCommands } from "../utils/commands"
+import { HistoryStack } from "../utils/history"
+import { applyMarkdownShortcut } from "../utils/mdShortcuts"
+import { DEFAULT_SLASH_COMMANDS } from "../utils/slashCommands"
+import { RichTextEditorContext } from "../context"
+import type {
+  RichTextEditorHandle,
+  RichTextEditorProps,
+  SlashCommand,
+} from "../types"
 
-export const RichTextEditor: React.FC<RichTextEditorProps> = ({
-  value = "",
-  onChange,
-  placeholder = "Start typing...",
-  className = "",
-  disabled = false,
-  theme = "auto",
-}) => {
+interface SlashState {
+  open: boolean
+  query: string
+  pos: { top: number; left: number }
+  triggerNode: Text
+  triggerOffset: number
+}
+
+export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor(
+  {
+    value = "",
+    onChange,
+    placeholder = "Start typing...",
+    className = "",
+    style,
+    disabled = false,
+    readOnly = false,
+    theme = "light",
+    toolbar = "all",
+    customButtons,
+    onImageUpload,
+    autoFocus = false,
+    maxLength,
+    textColorPresets,
+    backgroundColorPresets,
+    minHeight,
+    showStats = false,
+    allowHtmlMode = true,
+    onFocus,
+    onBlur,
+    onSelectionChange,
+    slashMenu = false,
+    markdownShortcuts = false,
+    bubbleToolbar = false,
+  },
+  ref,
+) {
   const editorRef = useRef<HTMLDivElement>(null)
-  const [isHtmlMode, setIsHtmlMode] = useState(false)
-  const [htmlContent, setHtmlContent] = useState(value)
-  const [isTyping, setIsTyping] = useState(false)
   const lastValueRef = useRef(value)
+  const initialValueRef = useRef(value)
+  const isTypingRef = useRef(false)
+  const historyRef = useRef(new HistoryStack(100))
+  const [isHtmlMode, setIsHtmlMode] = useState(false)
+  const [htmlSource, setHtmlSource] = useState(value)
+  const [isEmpty, setIsEmpty] = useState(!value)
+  const [slashState, setSlashState] = useState<SlashState | null>(null)
 
-  // Save cursor position
-  const saveCursorPosition = useCallback(() => {
-    const selection = window.getSelection()
-    if (!selection || !editorRef.current) return null
+  const slashCommands = useMemo<SlashCommand[]>(() => {
+    if (slashMenu === false) return []
+    if (slashMenu === true) return DEFAULT_SLASH_COMMANDS
+    return slashMenu
+  }, [slashMenu])
 
-    const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null
-    if (!range) return null
+  // ---------- Imperative API ----------
+  const getHTML = useCallback((): string => {
+    if (isHtmlMode) return htmlSource
+    return editorRef.current?.innerHTML ?? ""
+  }, [isHtmlMode, htmlSource])
 
-    return {
-      startContainer: range.startContainer,
-      startOffset: range.startOffset,
-      endContainer: range.endContainer,
-      endOffset: range.endOffset,
-    }
-  }, [])
+  const setHTML = useCallback((html: string) => {
+    const sanitized = HTMLSanitizer.sanitize(html)
+    if (editorRef.current) editorRef.current.innerHTML = sanitized
+    setHtmlSource(sanitized)
+    lastValueRef.current = sanitized
+    historyRef.current.push(sanitized)
+    setIsEmpty(!HTMLSanitizer.extractText(sanitized).trim())
+    onChange?.(sanitized)
+  }, [onChange])
 
-  // Restore cursor position
-  const restoreCursorPosition = useCallback((position: any) => {
-    if (!position || !editorRef.current) return
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => editorRef.current?.focus(),
+      blur: () => editorRef.current?.blur(),
+      clear: () => setHTML(""),
+      getHTML,
+      setHTML,
+      getText: () => HTMLSanitizer.extractText(getHTML()),
+      insertHTML: (html: string) => {
+        EditorCommands.insertHTML(html)
+        handleInput()
+      },
+      execCommand: (cmd: string, val?: string) => {
+        EditorCommands.execCommand(cmd, val)
+        handleInput()
+      },
+      getStats: () => EditorCommands.stats(getHTML()),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [getHTML, setHTML],
+  )
 
-    try {
-      const selection = window.getSelection()
-      if (!selection) return
-
-      const range = document.createRange()
-
-      // Check if the nodes still exist in the DOM
-      if (editorRef.current.contains(position.startContainer) && editorRef.current.contains(position.endContainer)) {
-        range.setStart(position.startContainer, position.startOffset)
-        range.setEnd(position.endContainer, position.endOffset)
-
-        selection.removeAllRanges()
-        selection.addRange(range)
-      }
-    } catch (error) {
-      // If restoration fails, place cursor at the end
-      const selection = window.getSelection()
-      if (selection && editorRef.current) {
-        const range = document.createRange()
-        range.selectNodeContents(editorRef.current)
-        range.collapse(false)
-        selection.removeAllRanges()
-        selection.addRange(range)
-      }
-    }
-  }, [])
-
-  // Initialize editor content only when value changes externally
+  // ---------- Sync external value ----------
   useEffect(() => {
-    if (editorRef.current && !isHtmlMode && !isTyping && value !== lastValueRef.current) {
-      const cursorPosition = saveCursorPosition()
+    if (isTypingRef.current) return
+    if (value === lastValueRef.current) return
+    if (editorRef.current && !isHtmlMode) {
       editorRef.current.innerHTML = value
-      lastValueRef.current = value
-
-      // Restore cursor position after a brief delay
-      setTimeout(() => {
-        if (cursorPosition) {
-          restoreCursorPosition(cursorPosition)
-        }
-      }, 0)
     }
-  }, [value, isHtmlMode, isTyping, saveCursorPosition, restoreCursorPosition])
+    setHtmlSource(value)
+    lastValueRef.current = value
+    historyRef.current.reset(value)
+    setIsEmpty(!HTMLSanitizer.extractText(value).trim())
+  }, [value, isHtmlMode])
 
-  // Handle content changes
+  // ---------- Mount: set initial HTML once ----------
+  useEffect(() => {
+    if (editorRef.current && !isHtmlMode) {
+      editorRef.current.innerHTML = initialValueRef.current
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ---------- Auto focus ----------
+  useEffect(() => {
+    if (autoFocus && editorRef.current && !readOnly && !disabled) {
+      editorRef.current.focus()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ---------- Stats ----------
+  const stats = useMemo(() => {
+    if (!showStats) return null
+    return EditorCommands.stats(htmlSource || value)
+  }, [showStats, htmlSource, value])
+
+  // ---------- Slash menu detection ----------
+  const updateSlashState = useCallback(() => {
+    if (slashCommands.length === 0) return
+    if (typeof window === "undefined") return
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0 || !sel.isCollapsed) {
+      setSlashState(null)
+      return
+    }
+    const range = sel.getRangeAt(0)
+    const node = range.startContainer
+    if (node.nodeType !== Node.TEXT_NODE) {
+      setSlashState(null)
+      return
+    }
+    if (!editorRef.current?.contains(node)) {
+      setSlashState(null)
+      return
+    }
+    const textNode = node as Text
+    const offset = range.startOffset
+    const before = textNode.data.slice(0, offset)
+    const m = before.match(/(?:^|\s)\/([\w-]*)$/)
+    if (!m) {
+      setSlashState(null)
+      return
+    }
+    const triggerOffset = offset - m[1].length - 1
+    const rectRange = document.createRange()
+    rectRange.setStart(textNode, triggerOffset)
+    rectRange.setEnd(textNode, offset)
+    const rect = rectRange.getBoundingClientRect()
+    setSlashState({
+      open: true,
+      query: m[1],
+      pos: {
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+      },
+      triggerNode: textNode,
+      triggerOffset,
+    })
+  }, [slashCommands.length])
+
+  const handleSlashSelect = useCallback(
+    (cmd: SlashCommand) => {
+      if (!slashState || !editorRef.current) return
+      const sel = window.getSelection()
+      if (!sel) return
+      const range = document.createRange()
+      range.setStart(slashState.triggerNode, slashState.triggerOffset)
+      if (sel.rangeCount > 0) {
+        const cur = sel.getRangeAt(0)
+        range.setEnd(cur.endContainer, cur.endOffset)
+      } else {
+        range.setEnd(slashState.triggerNode, slashState.triggerOffset)
+      }
+      range.deleteContents()
+      sel.removeAllRanges()
+      sel.addRange(range)
+      try {
+        cmd.run(editorRef.current)
+      } catch (err) {
+        console.warn("Slash command failed:", err)
+      }
+      setSlashState(null)
+      handleInput()
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [slashState],
+  )
+
+  // ---------- Input handling ----------
   const handleInput = useCallback(() => {
-    if (editorRef.current && onChange && !isHtmlMode) {
-      setIsTyping(true)
-      const content = editorRef.current.innerHTML
-      const sanitized = HTMLSanitizer.sanitize(content)
-      lastValueRef.current = sanitized
-      onChange(sanitized)
-
-      // Reset typing flag after a short delay
-      setTimeout(() => setIsTyping(false), 100)
+    if (!editorRef.current || isHtmlMode) return
+    isTypingRef.current = true
+    const raw = editorRef.current.innerHTML
+    if (maxLength != null) {
+      const text = HTMLSanitizer.extractText(raw)
+      if (text.length > maxLength) {
+        editorRef.current.innerHTML = lastValueRef.current
+        return
+      }
     }
-  }, [onChange, isHtmlMode])
+    const sanitized = HTMLSanitizer.sanitize(raw)
+    lastValueRef.current = sanitized
+    setHtmlSource(sanitized)
+    setIsEmpty(!HTMLSanitizer.extractText(sanitized).trim())
+    historyRef.current.push(sanitized)
+    onChange?.(sanitized)
+    updateSlashState()
+    setTimeout(() => {
+      isTypingRef.current = false
+    }, 50)
+  }, [isHtmlMode, maxLength, onChange, updateSlashState])
 
-  // Handle paste events
-  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+  const handleHtmlChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const content = e.target.value
+    setHtmlSource(content)
+    lastValueRef.current = content
+    onChange?.(content)
+  }
+
+  // ---------- Paste ----------
+  const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
     e.preventDefault()
-
     const clipboardData = e.clipboardData
     const items = clipboardData.items
 
-    // Handle image paste
     for (let i = 0; i < items.length; i++) {
       const item = items[i]
       if (item.type.indexOf("image") !== -1) {
         const file = item.getAsFile()
         if (file) {
-          const reader = new FileReader()
-          reader.onload = (event) => {
-            const img = `<img src="${event.target?.result}" style="max-width: 100%; height: auto;" />`
-            document.execCommand("insertHTML", false, img)
+          let src: string
+          try {
+            if (onImageUpload) {
+              src = await onImageUpload(file)
+            } else {
+              src = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader()
+                reader.onload = (ev) => resolve(ev.target?.result as string)
+                reader.onerror = () => reject(reader.error)
+                reader.readAsDataURL(file)
+              })
+            }
+            EditorCommands.insertImage(src, file.name)
+            handleInput()
+          } catch (err) {
+            console.error("Image paste failed:", err)
           }
-          reader.readAsDataURL(file)
           return
         }
       }
     }
 
-    // Handle text paste
     const text = clipboardData.getData("text/plain")
-    document.execCommand("insertText", false, text)
-  }, [])
+    EditorCommands.execCommand("insertText", text)
+  }, [onImageUpload, handleInput])
 
-  // Handle key events to maintain cursor position
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    setIsTyping(true)
-  }, [])
-
-  const handleKeyUp = useCallback((e: React.KeyboardEvent) => {
-    // Reset typing flag after a delay
-    setTimeout(() => setIsTyping(false), 50)
-  }, [])
-
-  // Handle image resizing
-  useEffect(() => {
-    const handleImageClick = (e: Event) => {
-      const target = e.target as HTMLElement
-      if (target.tagName === "IMG") {
-        target.style.resize = "both"
-        target.style.overflow = "auto"
-        target.contentEditable = "false"
-      }
-    }
-
-    const editor = editorRef.current
-    if (editor) {
-      editor.addEventListener("click", handleImageClick)
-      return () => editor.removeEventListener("click", handleImageClick)
-    }
-  }, [])
-
+  // ---------- HTML mode toggle ----------
   const toggleHtmlMode = () => {
     if (isHtmlMode) {
-      // Switch back to WYSIWYG
-      if (editorRef.current) {
-        editorRef.current.innerHTML = htmlContent
-        lastValueRef.current = htmlContent
-      }
-    } else {
-      // Switch to HTML mode
-      if (editorRef.current) {
-        setHtmlContent(editorRef.current.innerHTML)
-      }
+      const sanitized = HTMLSanitizer.sanitize(htmlSource)
+      if (editorRef.current) editorRef.current.innerHTML = sanitized
+      lastValueRef.current = sanitized
+      onChange?.(sanitized)
+    } else if (editorRef.current) {
+      setHtmlSource(editorRef.current.innerHTML)
     }
-    setIsHtmlMode(!isHtmlMode)
-    setIsTyping(false)
+    setIsHtmlMode((m) => !m)
   }
 
-  const handleHtmlChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const content = e.target.value
-    setHtmlContent(content)
-    lastValueRef.current = content
-    if (onChange) {
-      onChange(content)
+  // ---------- Keyboard shortcuts (undo/redo + md shortcuts) ----------
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    const mod = e.ctrlKey || e.metaKey
+
+    if (markdownShortcuts && !mod && editorRef.current) {
+      const handled = applyMarkdownShortcut(e.nativeEvent, editorRef.current)
+      if (handled) {
+        handleInput()
+        return
+      }
+    }
+
+    if (mod && e.key === "z" && !e.shiftKey) {
+      const current = editorRef.current?.innerHTML ?? ""
+      const prev = historyRef.current.undo(current)
+      if (prev != null && editorRef.current) {
+        e.preventDefault()
+        editorRef.current.innerHTML = prev
+        lastValueRef.current = prev
+        setHtmlSource(prev)
+        onChange?.(prev)
+      }
+    } else if (mod && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+      const next = historyRef.current.redo()
+      if (next != null && editorRef.current) {
+        e.preventDefault()
+        editorRef.current.innerHTML = next
+        lastValueRef.current = next
+        setHtmlSource(next)
+        onChange?.(next)
+      }
     }
   }
+
+  // ---------- Checklist toggle on click ----------
+  useEffect(() => {
+    const el = editorRef.current
+    if (!el) return
+    const handler = (e: Event) => {
+      const target = e.target as HTMLElement
+      const li = target.closest("li")
+      if (li && li.parentElement?.getAttribute("data-type") === "task") {
+        const rect = li.getBoundingClientRect()
+        const me = e as MouseEvent
+        if (me.clientX - rect.left < 24) {
+          const checked = li.getAttribute("data-checked") === "true"
+          li.setAttribute("data-checked", checked ? "false" : "true")
+          handleInput()
+        }
+      }
+    }
+    el.addEventListener("click", handler)
+    return () => el.removeEventListener("click", handler)
+  }, [handleInput])
+
+  const closeSlash = useCallback(() => setSlashState(null), [])
+
+  const rootClass = ["rte-root", className].filter(Boolean).join(" ")
+  const surfaceStyle: React.CSSProperties = minHeight ? { ["--rte-min-height" as any]: minHeight } : {}
 
   return (
-    <div
-      className={`rich-text-editor border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden ${className}`}
-    >
-      <Toolbar onSelectionChange={handleInput} />
+    <RichTextEditorContext.Provider value={{ onImageUpload, readOnly, disabled }}>
+      <div
+        className={rootClass}
+        data-rte-theme={theme}
+        style={style}
+      >
+        <Toolbar
+          items={toolbar}
+          customButtons={customButtons}
+          textColorPresets={textColorPresets}
+          backgroundColorPresets={backgroundColorPresets}
+          onSelectionChange={onSelectionChange}
+        />
 
-      <div className="flex items-center justify-between px-3 py-1 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-600">
-        <div className="text-sm text-gray-600 dark:text-gray-400">{isHtmlMode ? "HTML Source" : "Visual Editor"}</div>
-        <button
-          onClick={toggleHtmlMode}
-          className="text-sm px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
-        >
-          {isHtmlMode ? "Visual" : "HTML"}
-        </button>
+        {allowHtmlMode && (
+          <div className="rte-statusbar">
+            <span>{isHtmlMode ? "HTML Source" : "Visual Editor"}</span>
+            <button type="button" className="rte-mode-toggle" onClick={toggleHtmlMode}>
+              {isHtmlMode ? "Visual" : "HTML"}
+            </button>
+          </div>
+        )}
+
+        {isHtmlMode ? (
+          <textarea
+            value={htmlSource}
+            onChange={handleHtmlChange}
+            className="rte-html-source"
+            disabled={disabled}
+            spellCheck={false}
+          />
+        ) : (
+          <div
+            ref={editorRef}
+            contentEditable={!disabled && !readOnly}
+            onInput={handleInput}
+            onPaste={handlePaste}
+            onFocus={onFocus}
+            onBlur={onBlur}
+            onKeyDown={handleKeyDown}
+            className="rte-surface"
+            style={surfaceStyle}
+            data-placeholder={placeholder}
+            data-empty={isEmpty || undefined}
+            data-readonly={readOnly || undefined}
+            data-disabled={disabled || undefined}
+            suppressContentEditableWarning
+          />
+        )}
+
+        {showStats && stats && (
+          <div className="rte-stats" aria-live="polite">
+            <span>{stats.words} words</span>
+            <span>{stats.characters} chars</span>
+            {maxLength != null && <span>/ {maxLength} max</span>}
+          </div>
+        )}
+
+        {slashCommands.length > 0 && slashState && (
+          <SlashMenu
+            open={slashState.open}
+            query={slashState.query}
+            position={slashState.pos}
+            commands={slashCommands}
+            onSelect={handleSlashSelect}
+            onClose={closeSlash}
+          />
+        )}
+
+        {bubbleToolbar !== false && !isHtmlMode && (
+          <BubbleToolbar
+            editor={editorRef.current}
+            items={bubbleToolbar === true ? true : bubbleToolbar}
+            onAction={handleInput}
+          />
+        )}
       </div>
-
-      {isHtmlMode ? (
-        <textarea
-          value={htmlContent}
-          onChange={handleHtmlChange}
-          className="w-full h-96 p-4 font-mono text-sm bg-white dark:bg-gray-900 resize-none focus:outline-none"
-          disabled={disabled}
-        />
-      ) : (
-        <div
-          ref={editorRef}
-          contentEditable={!disabled}
-          onInput={handleInput}
-          onPaste={handlePaste}
-          onKeyDown={handleKeyDown}
-          onKeyUp={handleKeyUp}
-          className={`
-            min-h-[300px] p-4 bg-white dark:bg-gray-900 focus:outline-none
-            prose prose-sm max-w-none
-            ${disabled ? "opacity-50 cursor-not-allowed" : ""}
-          `}
-          style={{
-            lineHeight: "1.6",
-          }}
-          data-placeholder={placeholder}
-          suppressContentEditableWarning={true}
-        />
-      )}
-
-      <style>{`
-        .rich-text-editor [contenteditable]:empty:before {
-          content: attr(data-placeholder);
-          color: #9ca3af;
-          pointer-events: none;
-        }
-        
-        .rich-text-editor img {
-          max-width: 100%;
-          height: auto;
-          cursor: pointer;
-        }
-        
-        .rich-text-editor img:hover {
-          outline: 2px solid #3b82f6;
-        }
-        
-        .rich-text-editor table {
-          border-collapse: collapse;
-          width: 100%;
-          margin: 1em 0;
-        }
-        
-        .rich-text-editor table td,
-        .rich-text-editor table th {
-          border: 1px solid #d1d5db;
-          padding: 8px;
-          text-align: left;
-        }
-        
-        .rich-text-editor table th {
-          background-color: #f3f4f6;
-          font-weight: bold;
-        }
-        
-        .rich-text-editor blockquote {
-          border-left: 4px solid #e5e7eb;
-          margin: 1em 0;
-          padding-left: 1em;
-          color: #6b7280;
-        }
-        
-        .rich-text-editor pre {
-          background-color: #f3f4f6;
-          border-radius: 0.375rem;
-          padding: 1em;
-          overflow-x: auto;
-          font-family: 'Courier New', monospace;
-        }
-        
-        .rich-text-editor code {
-          background-color: #f3f4f6;
-          padding: 0.125rem 0.25rem;
-          border-radius: 0.25rem;
-          font-family: 'Courier New', monospace;
-        }
-      `}</style>
-    </div>
+    </RichTextEditorContext.Provider>
   )
-}
+})
