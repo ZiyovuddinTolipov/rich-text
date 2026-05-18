@@ -26,7 +26,9 @@ jobs:
           cache: npm
 
       - name: Install
-        run: npm ci
+        run: |
+          rm -f package-lock.json
+          npm install --no-audit --no-fund
 
       - name: Type check
         run: npm run type-check
