@@ -59,11 +59,24 @@ describe("cleanPastedHtml", () => {
     expect(out).toContain("bold here")
   })
 
-  it("strips class, id, lang, style attributes from plain elements", () => {
+  it("strips class, id, lang, dir but preserves safe style", () => {
     const out = cleanPastedHtml(
       '<p class="x" id="y" lang="en" style="color:red" dir="ltr">Hi</p>',
     )
-    expect(out).toBe("<p>Hi</p>")
+    expect(out).not.toMatch(/class=/)
+    expect(out).not.toMatch(/id=/)
+    expect(out).not.toMatch(/lang=/)
+    expect(out).not.toMatch(/dir=/)
+    expect(out).toMatch(/color\s*:\s*red/)
+    expect(out).toContain("Hi")
+  })
+
+  it("strips mso-* style declarations but keeps safe ones", () => {
+    const out = cleanPastedHtml(
+      '<p style="color:red;mso-line-height:single">Hi</p>',
+    )
+    expect(out).not.toMatch(/mso-/)
+    expect(out).toMatch(/color\s*:\s*red/)
   })
 
   it("unwraps empty span elements", () => {

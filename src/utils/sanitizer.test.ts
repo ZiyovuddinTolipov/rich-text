@@ -36,14 +36,23 @@ describe("HTMLSanitizer", () => {
     expect(good).toContain("data:image/png")
   })
 
-  it("drops style attribute by default", () => {
+  it("keeps safe style declarations by default", () => {
     const out = HTMLSanitizer.sanitize('<p style="color:red">x</p>')
-    expect(out).not.toContain("style")
+    expect(out).toMatch(/color\s*:\s*red/)
   })
 
-  it("keeps style when allowStyle: true", () => {
-    const out = HTMLSanitizer.sanitize('<p style="color:red">x</p>', { allowStyle: true })
-    expect(out).toContain("style=\"color:red\"")
+  it("strips dangerous style declarations", () => {
+    const out = HTMLSanitizer.sanitize(
+      '<p style="color:red;mso-fareast-language:EN;position:fixed;top:0">x</p>',
+    )
+    expect(out).toMatch(/color\s*:\s*red/)
+    expect(out).not.toMatch(/mso-/)
+    expect(out).not.toMatch(/position\s*:\s*fixed/)
+  })
+
+  it("drops style attribute entirely when no safe declarations remain", () => {
+    const out = HTMLSanitizer.sanitize('<p style="expression(alert(1))">x</p>')
+    expect(out).not.toContain("style")
   })
 
   it("adds rel=noopener to target=_blank links", () => {
