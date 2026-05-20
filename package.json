@@ -1,6 +1,6 @@
 {
     "name": "@tolipovjs/rich-text",
-    "version": "2.2.0",
+    "version": "2.2.1",
     "description": "A modern, lightweight, fully featured React rich text editor with CSS-variable theming and zero peer styling dependencies",
     "main": "dist/index.js",
     "module": "dist/index.mjs",

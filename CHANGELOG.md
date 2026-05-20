@@ -1,6 +1,17 @@
 # Changelog
 
-## 2.2.0 — Unreleased
+## 2.2.1 — 2026-05-20
+
+### Fixed
+
+- **Inline styles preserved across copy/paste**. Sanitizer now allows the `style` attribute by default and filters values through a new `sanitizeStyle` util — blocks `mso-*`, `expression()`, `javascript:`, `behavior:`, `binding:`, `@import`, and `position: fixed|absolute`; keeps color, background, font-size, font-family, font-weight, text-decoration, padding, margin, border, etc. Toolbar foreColor/backColor/fontSize now survive subsequent input events and round-trip copy-paste.
+- **Paste cleanup keeps semantic styling**. `cleanPastedHtml` filters `style` through the same util instead of dropping it; `data-type` and `data-checked` (task lists) are preserved; `hasSemanticStyle` recognizes color, background, font-size, font-family, letter-spacing, line-height in addition to bold/italic/underline.
+- **Paste image into editor**. Editor is refocused after the async `FileReader` / `onImageUpload` so `EditorCommands.insertImage` runs against a live selection.
+- **Side-by-side images**. `insertImage` now uses `document.execCommand("insertHTML")` so images insert as inline content instead of splitting the block container.
+- **Copy image from editor**. `.rte-surface img` gets `display: inline`, `user-select: text`, `-webkit-user-select: text` so images are selectable and copyable.
+- **Image resize tracks the image during drag**. The overlay box now recomputes on every `mousemove`, so handles stay on the corners while the image shrinks instead of drifting off.
+
+## 2.2.0 — 2026-05-20
 
 ### Added — Productivity
 
