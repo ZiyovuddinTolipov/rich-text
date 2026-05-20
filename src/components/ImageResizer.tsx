@@ -52,6 +52,18 @@ export function ImageResizer({
     return () => editor.removeEventListener("click", onClick)
   }, [editor])
 
+  // Recompute overlay box from current image rect
+  function recomputeBox(img: HTMLImageElement, ed: HTMLDivElement) {
+    const r = img.getBoundingClientRect()
+    const er = ed.getBoundingClientRect()
+    setBox({
+      top: r.top - er.top + ed.scrollTop,
+      left: r.left - er.left + ed.scrollLeft,
+      width: r.width,
+      height: r.height,
+    })
+  }
+
   // Track target rectangle (also on window resize/scroll)
   useEffect(() => {
     if (!target || !editor) {
@@ -60,14 +72,7 @@ export function ImageResizer({
     }
     function recompute() {
       if (!target || !editor) return
-      const r = target.getBoundingClientRect()
-      const er = editor.getBoundingClientRect()
-      setBox({
-        top: r.top - er.top + editor.scrollTop,
-        left: r.left - er.left + editor.scrollLeft,
-        width: r.width,
-        height: r.height,
-      })
+      recomputeBox(target, editor)
     }
     recompute()
     window.addEventListener("scroll", recompute, true)
@@ -100,6 +105,7 @@ export function ImageResizer({
       nextHeight = nextWidth / drag.aspect
       drag.img.style.width = `${Math.round(nextWidth)}px`
       drag.img.style.height = `${Math.round(nextHeight)}px`
+      if (editor) recomputeBox(drag.img, editor)
     }
     function onUp() {
       if (!dragRef.current) return

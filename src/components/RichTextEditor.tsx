@@ -316,6 +316,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
                 reader.readAsDataURL(file)
               })
             }
+            editorRef.current?.focus()
             EditorCommands.insertImage(src, file.name)
             handleInput()
           } catch (err) {

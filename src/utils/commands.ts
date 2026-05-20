@@ -62,9 +62,10 @@ export class EditorCommands {
   }
 
   static insertImage(src: string, alt?: string): void {
+    if (!isClient()) return
     const safeAlt = alt ? escapeAttr(alt) : ""
     const safeSrc = escapeAttr(src)
-    this.insertHTML(`<img src="${safeSrc}" alt="${safeAlt}" />`)
+    document.execCommand("insertHTML", false, `<img src="${safeSrc}" alt="${safeAlt}" />`)
   }
 
   static insertTable(rows: number, cols: number): void {

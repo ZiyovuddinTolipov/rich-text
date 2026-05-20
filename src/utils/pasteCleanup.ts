@@ -4,6 +4,8 @@
  * and normalizes nested span clutter.
  */
 
+import { sanitizeStyle } from "./styleFilter"
+
 const WORD_MARKERS = [
   /class="?MsoNormal"?/i,
   /class="?Mso[A-Za-z]+"?/i,
@@ -88,13 +90,19 @@ export function cleanPastedHtml(html: string): string {
             name === "class" ||
             name === "id" ||
             name === "lang" ||
-            name === "style" ||
-            name.startsWith("data-") ||
             name.startsWith("aria-") ||
             name === "dir" ||
-            name === "align"
+            name === "align" ||
+            (name.startsWith("data-") && name !== "data-type" && name !== "data-checked")
           ) {
             node.removeAttribute(a.name)
+          } else if (name === "style") {
+            const cleaned = sanitizeStyle(a.value)
+            if (cleaned) {
+              node.setAttribute("style", cleaned)
+            } else {
+              node.removeAttribute("style")
+            }
           }
         }
       }
@@ -118,11 +126,7 @@ export function cleanPastedHtml(html: string): string {
 
 function hasSemanticStyle(el: Element): boolean {
   const style = el.getAttribute("style") || ""
-  return (
-    /font-weight\s*:\s*(bold|[6-9]\d\d)/i.test(style) ||
-    /font-style\s*:\s*italic/i.test(style) ||
-    /text-decoration[^;]*underline/i.test(style)
-  )
+  return /font-weight|font-style|text-decoration|color|background|font-size|font-family|letter-spacing|line-height/i.test(style)
 }
 
 function unwrap(el: Element) {

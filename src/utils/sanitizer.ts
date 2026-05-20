@@ -1,4 +1,5 @@
 import type { SanitizeOptions } from "../types"
+import { sanitizeStyle } from "./styleFilter"
 
 const DEFAULT_ALLOWED_TAGS = [
   "p", "div", "span", "br",
@@ -16,6 +17,7 @@ const DEFAULT_ALLOWED_ATTRS = [
   "class", "colspan", "rowspan",
   "data-type", "data-checked",
   "width", "height",
+  "style",
 ]
 
 const URL_ATTR = new Set(["href", "src"])
@@ -36,7 +38,6 @@ export class HTMLSanitizer {
 
     const allowedTags = new Set([...DEFAULT_ALLOWED_TAGS, ...(opts.extraTags ?? [])])
     const allowedAttrs = new Set([...DEFAULT_ALLOWED_ATTRS, ...(opts.extraAttributes ?? [])])
-    if (opts.allowStyle) allowedAttrs.add("style")
 
     const div = document.createElement("div")
     div.innerHTML = html
@@ -87,6 +88,15 @@ export class HTMLSanitizer {
           element.removeAttribute(attr.name)
         }
       })
+
+      if (element.hasAttribute("style")) {
+        const cleaned = sanitizeStyle(element.getAttribute("style") ?? "")
+        if (cleaned) {
+          element.setAttribute("style", cleaned)
+        } else {
+          element.removeAttribute("style")
+        }
+      }
 
       if (tag === "a" && element.getAttribute("target") === "_blank" && !element.getAttribute("rel")) {
         element.setAttribute("rel", "noopener noreferrer")

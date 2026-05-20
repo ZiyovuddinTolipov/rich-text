@@ -423,10 +423,13 @@
    ============================ */
 
 .rte-surface img {
+    display: inline;
     max-width: 100%;
     height: auto;
     cursor: pointer;
     border-radius: var(--rte-radius-sm);
+    user-select: text;
+    -webkit-user-select: text;
 }
 
 .rte-surface img:hover {
